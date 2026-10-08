@@ -9,11 +9,12 @@ const api = async (url, opts = {}) => {
 
 // ---------- icons ----------
 const svg = (d) => `<svg viewBox="0 0 24 24">${d}</svg>`;
+// Abstract marks, one visual language: circles and curves, no literal pictograms.
 const I = {
-  next: svg('<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/>'),
-  ask: svg('<path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 19.8l1.2-4A8 8 0 1 1 20 11.5z"/><path d="M9.9 9.4a2.2 2.2 0 0 1 4.3.7c0 1.5-2.2 1.7-2.2 3"/><path d="M12 15.9h.01"/>'),
-  deep: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.6-4.6"/><path d="M10.5 7.5v6M7.5 10.5h6"/>'),
-  mem: svg('<path d="M12 21c-4-2.6-7-5.6-7-10a7 7 0 0 1 14 0c0 4.4-3 7.4-7 10z"/><path d="M12 7v9M9 12.5l3 3 3-3"/>'),
+  next: svg('<circle cx="5" cy="18" r="1.6"/><circle cx="11" cy="12.5" r="2.6"/><circle cx="18" cy="6.5" r="3.6"/>'),
+  ask: svg('<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>'),
+  deep: svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="14.5" r="5"/><circle cx="12" cy="17" r="1.6"/>'),
+  mem: svg('<path d="M13 12a1 1 0 0 1 2 0a3 3 0 0 1-6 0a5 5 0 0 1 10 0a7 7 0 0 1-14 0"/>'),
 };
 
 // ---------- i18n ----------

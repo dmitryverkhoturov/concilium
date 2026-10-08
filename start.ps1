@@ -7,4 +7,15 @@ if (-not (Up)) {
   Start-Process -FilePath node -ArgumentList 'server.mjs' -WorkingDirectory $here -WindowStyle Hidden
   for ($i = 0; $i -lt 160 -and -not (Up); $i++) { Start-Sleep -Milliseconds 250 }
 }
-Start-Process msedge -ArgumentList "--app=http://localhost:$port"
+# App window: Edge, else Chrome, else Yandex (all Chromium, all support --app); else the default browser.
+$url = "http://localhost:$port"
+$browsers = @(
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+  "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+  "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+  "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+  "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe",
+  "$env:LOCALAPPDATA\Yandex\YandexBrowser\Application\browser.exe"
+)
+$exe = $browsers | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if ($exe) { Start-Process -FilePath $exe -ArgumentList "--app=$url" } else { Start-Process $url }
