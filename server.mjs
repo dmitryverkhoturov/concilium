@@ -4,6 +4,7 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn, execFile } from 'node:child_process';
 import { query, listSessions, getSessionMessages } from '@anthropic-ai/claude-agent-sdk';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -227,6 +228,38 @@ function graph(p) {
   return { nodes: [...nodes.values()], links: [...links.values()] };
 }
 
+// ---------- sign-in ----------
+// The SDK ships its own Claude Code binary; sign-in runs through it, so nobody needs a terminal.
+
+const CLI = (() => {
+  const exe = path.join(ROOT, 'node_modules/@anthropic-ai', `claude-agent-sdk-${process.platform}-${process.arch}`, process.platform === 'win32' ? 'claude.exe' : 'claude');
+  return fs.existsSync(exe) ? exe : 'claude';
+})();
+
+function authStatus() {
+  return new Promise((resolve) => execFile(CLI, ['auth', 'status', '--json'], { env: cleanEnv, timeout: 30000 }, (err, out) => {
+    try { const j = JSON.parse(out); resolve({ loggedIn: !!j.loggedIn, email: j.email || j.account?.email }); }
+    catch { resolve({ loggedIn: false, error: String(err?.message || 'status failed') }); }
+  }));
+}
+
+let login = null; // { proc, url, output, exited }
+function startLogin() {
+  if (login && !login.exited) return login;
+  const proc = spawn(CLI, ['auth', 'login', '--claudeai'], { env: cleanEnv, stdio: ['pipe', 'pipe', 'pipe'] });
+  const l = { proc, url: null, output: '', exited: false, started: Date.now() };
+  const onData = (d) => {
+    l.output += d.toString();
+    l.url ||= l.output.match(/https:\/\/\S+/)?.[0] || null;
+  };
+  proc.stdout.on('data', onData);
+  proc.stderr.on('data', onData);
+  proc.on('exit', (code) => { l.exited = true; l.code = code; });
+  proc.on('error', (e) => { l.exited = true; l.output += String(e.message); });
+  login = l;
+  return l;
+}
+
 // ---------- http ----------
 
 const app = express();
@@ -236,6 +269,19 @@ app.use('/vendor/force-graph', express.static(path.join(ROOT, 'node_modules/forc
 app.use('/vendor/marked', express.static(path.join(ROOT, 'node_modules/marked/lib')));
 
 const h = (fn) => (req, res) => Promise.resolve(fn(req, res)).catch((e) => res.status(e.status || 500).json({ error: String(e.message || e) }));
+
+app.get('/api/auth', h(async (req, res) => {
+  const st = await authStatus();
+  if (st.loggedIn && login && !login.exited) login.proc.kill();
+  res.json({ ...st, pending: !!(login && !login.exited), url: login?.url || null, failed: !!(login?.exited && login.code) });
+}));
+app.post('/api/auth/login', h((req, res) => { const l = startLogin(); res.json({ pending: true, url: l.url }); }));
+app.post('/api/auth/code', h((req, res) => {
+  const code = String(req.body?.code || '').trim();
+  if (!login || login.exited || !code) return res.status(400).json({ error: 'no login in progress' });
+  login.proc.stdin.write(code + '\n');
+  res.json({ ok: true });
+}));
 
 app.get('/api/people', h((req, res) => res.json(config().people)));
 app.post('/api/people', h(async (req, res) => {

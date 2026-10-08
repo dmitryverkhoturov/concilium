@@ -22,7 +22,8 @@ const I18N = {
       'update-memory': ['📝', 'Запомни разговор', 'Сохранить главное'],
     },
     tool: { Read: 'Читаю', Glob: 'Ищу файлы', Grep: 'Ищу в заметках', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
-    needsLogin: 'Нужно один раз войти в Claude на этом компьютере: откройте терминал, наберите claude и выполните /login.', thinking: 'Думаю…', stopped: 'Остановлено.', failed: 'Не получилось: ',
+    login: { title: 'Подключим помощника', text: 'Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.', btn: 'Войти через Claude', waiting: 'Жду подтверждения на странице Claude…', again: 'Открыть страницу ещё раз', code: 'Если страница показала код — вставьте его сюда:', codeBtn: 'Готово', failed: 'Не получилось войти. Попробуйте ещё раз.' },
+    needsLogin: 'Нужно войти в Claude.',thinking: 'Думаю…', stopped: 'Остановлено.', failed: 'Не получилось: ',
     mem: { idle: '', running: 'Обновляю память…', done: 'Память обновлена', error: 'Память не обновилась', nothing: 'Нового для памяти нет', waiting: 'Обновлю память, когда закончим' },
     memBtn: 'Обновить память сейчас', micNo: 'Голосовой ввод работает в Chrome и Edge. В Windows можно нажать Win+H.',
     legend: { memory: 'Главное', 'patient facts': 'Факты', hypotheses: 'Версии', questions: 'Вопросы', todo: 'Планы', history: 'История', branch: 'Темы', note: 'Заметки', vault: 'Из хранилища', document: 'Документы', missing: 'Нет заметки' },
@@ -41,7 +42,8 @@ const I18N = {
       'update-memory': ['📝', 'Remember this talk', 'Save what matters'],
     },
     tool: { Read: 'Reading', Glob: 'Looking for files', Grep: 'Searching notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },
-    needsLogin: 'Claude needs a one-time sign-in on this computer: open a terminal, type claude and run /login.', thinking: 'Thinking…', stopped: 'Stopped.', failed: 'Failed: ',
+    login: { title: "Let's connect the assistant", text: 'Press the button — a Claude page will open. Sign in to your account and press "Authorize". Then come back to this window.', btn: 'Sign in with Claude', waiting: 'Waiting for confirmation on the Claude page…', again: 'Open the page again', code: 'If the page shows a code, paste it here:', codeBtn: 'Done', failed: 'Sign-in failed. Please try again.' },
+    needsLogin: 'Claude sign-in is needed.',thinking: 'Thinking…', stopped: 'Stopped.', failed: 'Failed: ',
     mem: { idle: '', running: 'Updating memory…', done: 'Memory updated', error: 'Memory update failed', nothing: 'Nothing new to remember', waiting: 'Will update memory when we finish' },
     memBtn: 'Update memory now', micNo: 'Voice input works in Chrome and Edge. On Windows you can also press Win+H.',
     legend: { memory: 'Overview', 'patient facts': 'Facts', hypotheses: 'Hypotheses', questions: 'Questions', todo: 'Plans', history: 'History', branch: 'Topics', note: 'Notes', vault: 'From the vault', document: 'Documents', missing: 'No note yet' },
@@ -164,8 +166,69 @@ window.addEventListener('pagehide', () => {
 let idleTimer;
 function armIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(endConversation, 20 * 60 * 1000); }
 
+// ---------- sign-in ----------
+// One button: the server runs Claude's own sign-in, the browser opens, the person presses "Authorize".
+let authTimer;
+async function checkAuth() {
+  const a = await api('/api/auth').catch(() => ({ loggedIn: true }));
+  S.authed = a.loggedIn;
+  document.body.classList.toggle('noauth', !a.loggedIn);
+  if (!a.loggedIn) renderLogin(a);
+  return a.loggedIn;
+}
+function renderLogin(a = {}) {
+  const L = T().login;
+  const box = $('#messages');
+  box.innerHTML = '';
+  const w = document.createElement('div');
+  w.className = 'welcome login';
+  w.innerHTML = `<div class="big-logo">+</div><h1></h1><p class="lead"></p><button class="primary huge"></button><div class="pending hidden"><p class="wait"></p><a target="_blank" rel="noopener" class="again"></a><label class="codebox"><span></span><div class="row"><input autocomplete="off"><button class="primary"></button></div></label></div><p class="err hidden"></p>`;
+  w.querySelector('h1').textContent = L.title;
+  w.querySelector('.lead').textContent = L.text;
+  const btn = w.querySelector('.huge');
+  btn.textContent = L.btn;
+  w.querySelector('.wait').textContent = L.waiting;
+  w.querySelector('.again').textContent = L.again;
+  w.querySelector('.codebox span').textContent = L.code;
+  w.querySelector('.codebox .primary').textContent = L.codeBtn;
+  const pending = w.querySelector('.pending');
+  // Claude opens the sign-in page itself. The fallback link and code box appear only if nothing happened for a while.
+  const fallback = [w.querySelector('.again'), w.querySelector('.codebox')];
+  const showPending = (url) => {
+    btn.classList.add('hidden');
+    pending.classList.remove('hidden');
+    if (url) w.querySelector('.again').href = url;
+    fallback.forEach((x) => x.classList.add('hidden'));
+    setTimeout(() => { if (!S.authed) fallback.forEach((x) => x.classList.remove('hidden')); }, 20000);
+  };
+  btn.onclick = async () => {
+    const r = await api('/api/auth/login', { method: 'POST' });
+    showPending(r.url);
+    poll();
+  };
+  w.querySelector('.codebox .primary').onclick = async () => {
+    const code = w.querySelector('.codebox input').value.trim();
+    if (code) await api('/api/auth/code', { method: 'POST', body: { code } }).catch(() => {});
+  };
+  async function poll() {
+    clearTimeout(authTimer);
+    const s = await api('/api/auth').catch(() => ({}));
+    if (s.loggedIn) { document.body.classList.remove('noauth'); S.authed = true; renderWelcome(); return; }
+    if (s.url) w.querySelector('.again').href = s.url;
+    if (s.failed && !s.pending) {
+      const e = w.querySelector('.err'); e.textContent = L.failed; e.classList.remove('hidden');
+      btn.classList.remove('hidden'); pending.classList.add('hidden');
+      return;
+    }
+    authTimer = setTimeout(poll, 2000);
+  }
+  if (a.pending) { showPending(a.url); poll(); }
+  box.append(w);
+}
+
 // ---------- chat ----------
 function renderWelcome() {
+  if (S.authed === false) return renderLogin();
   const box = $('#messages');
   box.innerHTML = '';
   const w = document.createElement('div');
@@ -260,7 +323,9 @@ async function send({ text, skill } = {}) {
           while (work.children.length > 4) work.firstChild.remove();
           box.scrollTop = box.scrollHeight;
         } else if (ev === 'done' && !data.ok) {
-          const e = document.createElement('div'); e.className = 'err'; e.textContent = data.error === 'NEEDS_LOGIN' || /authenticat|OAuth/i.test(data.error || '') ? T().needsLogin : T().failed + (data.error || '');
+          const e = document.createElement('div'); e.className = 'err'; const needs = data.error === 'NEEDS_LOGIN' || /authenticat|OAuth/i.test(data.error || '');
+          e.textContent = needs ? T().needsLogin : T().failed + (data.error || '');
+          if (needs) setTimeout(checkAuth, 1500);
           box.append(e);
         }
       }
@@ -409,4 +474,4 @@ function closeSideOnNarrow() { $('#side').classList.remove('open'); }
 applyI18n();
 renderActions();
 setPanel(store.get('panel', innerWidth > 900 ? '1' : '0') === '1');
-loadPeople().catch((e) => { $('#messages').textContent = e.message; });
+checkAuth().then(() => loadPeople()).catch((e) => { $('#messages').textContent = e.message; });
