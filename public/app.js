@@ -1,4 +1,4 @@
-// Health Agent — front end. Plain JS, no build step.
+// Concilium — front end. Plain JS, no build step.
 const $ = (s) => document.querySelector(s);
 const api = async (url, opts = {}) => {
   const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts, body: opts.body && JSON.stringify(opts.body) });
@@ -7,19 +7,28 @@ const api = async (url, opts = {}) => {
   return j;
 };
 
+// ---------- icons ----------
+const svg = (d) => `<svg viewBox="0 0 24 24">${d}</svg>`;
+const I = {
+  next: svg('<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/>'),
+  ask: svg('<path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 19.8l1.2-4A8 8 0 1 1 20 11.5z"/><path d="M9.9 9.4a2.2 2.2 0 0 1 4.3.7c0 1.5-2.2 1.7-2.2 3"/><path d="M12 15.9h.01"/>'),
+  deep: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.6-4.6"/><path d="M10.5 7.5v6M7.5 10.5h6"/>'),
+  mem: svg('<path d="M12 21c-4-2.6-7-5.6-7-10a7 7 0 0 1 14 0c0 4.4-3 7.4-7 10z"/><path d="M12 7v9M9 12.5l3 3 3-3"/>'),
+};
+
 // ---------- i18n ----------
 const I18N = {
   ru: {
-    app: 'Здоровье', map: 'Карта', note: 'Заметка', newChat: 'Новый разговор', chats: 'Разговоры', send: 'Отправить',
+    app: 'Concilium', map: 'Карта', note: 'Заметка', newChat: 'Новый разговор', chats: 'Разговоры', send: 'Отправить',
     placeholder: 'Расскажите, что беспокоит, или задайте вопрос…', addTitle: 'Добавить человека', name: 'Имя',
     folder: 'Папка с заметками о здоровье', cancel: 'Отмена', add: 'Добавить', addPerson: '+ Добавить',
     hello: (n) => `Здравствуйте${n ? ', ' + n : ''}!`, helloSub: 'Расскажите своими словами, что беспокоит. Или выберите, с чего начать:',
     noPeople: 'Добавьте первого человека: его имя и папку с заметками о здоровье.',
     a: {
-      'next-step': ['🧭', 'Что делать дальше', 'Один лучший следующий шаг'],
-      'ask-questions': ['💬', 'Задай мне вопросы', 'Уточнить то, что важно'],
-      hypotheses: ['🔎', 'Разберись глубже', 'Изучить и обновить картину'],
-      'update-memory': ['📝', 'Запомни разговор', 'Сохранить главное'],
+      'next-step': [I.next, 'Что делать дальше', 'Один лучший следующий шаг'],
+      'ask-questions': [I.ask, 'Задай мне вопросы', 'Уточнить то, что важно'],
+      hypotheses: [I.deep, 'Разберись глубже', 'Изучить и обновить картину'],
+      'update-memory': [I.mem, 'Запомни разговор', 'Сохранить главное'],
     },
     tool: { Read: 'Вспоминаю записи', Glob: 'Вспоминаю записи', Grep: 'Вспоминаю записи', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
     login: { title: 'Подключим помощника', text: 'Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.', btn: 'Войти через Claude', waiting: 'Жду подтверждения на странице Claude…', again: 'Открыть страницу ещё раз', code: 'Если страница показала код — вставьте его сюда:', codeBtn: 'Готово', failed: 'Не получилось войти. Попробуйте ещё раз.' },
@@ -30,16 +39,16 @@ const I18N = {
     ago: (m) => m < 1 ? 'только что' : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.round(m / 60)} ч назад` : `${Math.round(m / 1440)} дн назад`,
   },
   en: {
-    app: 'Health', map: 'Map', note: 'Note', newChat: 'New conversation', chats: 'Conversations', send: 'Send',
+    app: 'Concilium', map: 'Map', note: 'Note', newChat: 'New conversation', chats: 'Conversations', send: 'Send',
     placeholder: 'Tell me what bothers you, or ask a question…', addTitle: 'Add a person', name: 'Name',
     folder: 'Folder with health notes', cancel: 'Cancel', add: 'Add', addPerson: '+ Add',
     hello: (n) => `Hello${n ? ', ' + n : ''}!`, helloSub: 'Tell me in your own words what bothers you. Or pick where to start:',
     noPeople: 'Add the first person: a name and their health notes folder.',
     a: {
-      'next-step': ['🧭', 'What should I do next', 'One best next step'],
-      'ask-questions': ['💬', 'Ask me questions', 'Clarify what matters'],
-      hypotheses: ['🔎', 'Dig deeper', 'Research and update the picture'],
-      'update-memory': ['📝', 'Remember this talk', 'Save what matters'],
+      'next-step': [I.next, 'What should I do next', 'One best next step'],
+      'ask-questions': [I.ask, 'Ask me questions', 'Clarify what matters'],
+      hypotheses: [I.deep, 'Dig deeper', 'Research and update the picture'],
+      'update-memory': [I.mem, 'Remember this talk', 'Save what matters'],
     },
     tool: { Read: 'Recalling notes', Glob: 'Recalling notes', Grep: 'Recalling notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },
     login: { title: "Let's connect the assistant", text: 'Press the button — a Claude page will open. Sign in to your account and press "Authorize". Then come back to this window.', btn: 'Sign in with Claude', waiting: 'Waiting for confirmation on the Claude page…', again: 'Open the page again', code: 'If the page shows a code, paste it here:', codeBtn: 'Done', failed: 'Sign-in failed. Please try again.' },
@@ -58,6 +67,8 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = T()[e.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-ph]').forEach((e) => { e.placeholder = T()[e.dataset.i18nPh]; });
   $('#lang').textContent = lang === 'ru' ? 'EN' : 'RU';
+  $('#send').title = T().send;
+  $('#mic').title = lang === 'ru' ? 'Говорить голосом' : 'Speak';
   document.title = T().app;
 }
 
@@ -182,7 +193,7 @@ function renderLogin(a = {}) {
   box.innerHTML = '';
   const w = document.createElement('div');
   w.className = 'welcome login';
-  w.innerHTML = `<div class="big-logo">+</div><h1></h1><p class="lead"></p><button class="primary huge"></button><div class="pending hidden"><p class="wait"></p><a target="_blank" rel="noopener" class="again"></a><label class="codebox"><span></span><div class="row"><input autocomplete="off"><button class="primary"></button></div></label></div><p class="err hidden"></p>`;
+  w.innerHTML = `<img class="big-logo" src="logo.svg" alt=""><h1></h1><p class="lead"></p><button class="primary huge"></button><div class="pending hidden"><p class="wait"></p><a target="_blank" rel="noopener" class="again"></a><label class="codebox"><span></span><div class="row"><input autocomplete="off"><button class="primary"></button></div></label></div><p class="err hidden"></p>`;
   w.querySelector('h1').textContent = L.title;
   w.querySelector('.lead').textContent = L.text;
   const btn = w.querySelector('.huge');
@@ -253,7 +264,8 @@ function renderActions() {
   for (const [k, [e, title]] of Object.entries(T().a)) {
     const b = document.createElement('button');
     b.className = 'chip';
-    b.textContent = `${e} ${title}`;
+    b.innerHTML = `${e}<span></span>`;
+    b.querySelector('span').textContent = title;
     b.onclick = () => send({ skill: k });
     a.append(b);
   }
@@ -262,7 +274,7 @@ function addMsg(role, text, skill) {
   const box = $('#messages');
   box.querySelector('.welcome')?.remove();
   const d = document.createElement('div');
-  if (skill) { d.className = 'msg skill'; const a = T().a[skill]; d.textContent = a ? `${a[0]} ${a[1]}` : skill; }
+  if (skill) { d.className = 'msg skill'; const a = T().a[skill]; d.innerHTML = a ? `${a[0]}<span>${esc(a[1])}</span>` : esc(skill); }
   else if (role === 'user') { d.className = 'msg user'; d.textContent = text; }
   else { d.className = 'msg assistant'; d.innerHTML = md(text); }
   box.append(d);
@@ -350,12 +362,12 @@ async function send({ text, skill } = {}) {
   }
 }
 function setBusy(b) {
-  $('#send').textContent = b ? '■' : T().send;
+  $('#send').classList.toggle('busy', b);
   document.querySelectorAll('.chip, .card').forEach((x) => { x.disabled = b; });
 }
 $('#send').onclick = () => (S.streaming ? S.streaming.abort() : send({ text: $('#input').value }));
 $('#input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send({ text: $('#input').value }); } });
-function autosize() { const t = $('#input'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, innerHeight * 0.4) + 'px'; }
+function autosize() { const t = $('#input'); const max = innerHeight * 0.4; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, max) + 'px'; t.style.overflowY = t.scrollHeight > max ? 'auto' : 'hidden'; }
 $('#input').addEventListener('input', autosize);
 
 // ---------- memory status ----------
@@ -378,7 +390,7 @@ function showMemory(s) {
 async function pollMemory() { if (S.pid) showMemory(await api(`/api/people/${S.pid}/memory`)); }
 
 // ---------- graph ----------
-const COLORS = { memory: '#2f8f62', 'patient facts': '#3b7dd8', hypotheses: '#d0663d', questions: '#9a5bd1', todo: '#c99a1d', history: '#7d8a99', identity: '#7d8a99', branch: '#d3478a', note: '#6aa7a0', vault: '#6aa7a0', document: '#a3a093', system: '#c9c4b8', missing: '#c9c4b8' };
+const COLORS = { memory: '#4b5e45', 'patient facts': '#5a7ea3', hypotheses: '#c0794f', questions: '#8a71ad', todo: '#b8963c', history: '#7f8c86', identity: '#7f8c86', branch: '#b25e85', note: '#6f9f94', vault: '#6f9f94', document: '#a39f8e', system: '#bfc8c2', missing: '#bfc8c2' };
 async function loadGraph() {
   if (!S.pid || $('#layout')?.classList.contains('nopanel')) return;
   const data = await api(`/api/people/${S.pid}/graph`);
@@ -393,15 +405,15 @@ async function loadGraph() {
       .nodeVal((n) => 2 + Math.sqrt(n.deg) * 2)
       .nodeColor((n) => COLORS[n.kind] || COLORS.note)
       .nodeLabel((n) => n.label)
-      .linkColor(() => (matchMedia('(prefers-color-scheme: dark)').matches ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'))
+      .linkColor(() => (matchMedia('(prefers-color-scheme: dark)').matches ? 'rgba(220,235,225,.14)' : 'rgba(40,60,45,.16)'))
       .linkWidth((l) => Math.min(3, 0.6 + Math.log(l.weight + 1)))
       .nodeCanvasObjectMode(() => 'after')
       .nodeCanvasObject((n, ctx, scale) => {
         if (scale < 1.1 && n.deg < 6 && n.kind !== 'memory') return;
         const size = Math.max(10 / scale, 3);
-        ctx.font = `${size}px Segoe UI, sans-serif`;
+        ctx.font = `500 ${size}px Manrope, Segoe UI, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillStyle = matchMedia('(prefers-color-scheme: dark)').matches ? '#cfccc4' : '#4a463f';
+        ctx.fillStyle = matchMedia('(prefers-color-scheme: dark)').matches ? '#cfd8d1' : '#33402f';
         const r = Math.sqrt(2 + Math.sqrt(n.deg) * 2) * 4;
         ctx.fillText(n.label.replace(/^\S+ (?=(MEMORY|HISTORY|TODO|HYPOTHESES|QUESTIONS|IDENTITY|PATIENT FACTS)$)/, ''), n.x, n.y + r + 1);
       })
