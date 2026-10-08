@@ -132,3 +132,4 @@ body.noauth .composer, body.noauth .side, body.noauth .people { visibility: hidd
 .codebox { display: block; margin-top: 28px; color: var(--muted); font-size: .9rem; text-align: left; }
 .codebox .row { display: flex; gap: 8px; margin-top: 6px; }
 .codebox input { flex: 1; font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.mic-note { color: var(--warn); font-size: .88rem; }

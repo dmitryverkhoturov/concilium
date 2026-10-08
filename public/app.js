@@ -25,7 +25,7 @@ const I18N = {
     login: { title: 'Подключим помощника', text: 'Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.', btn: 'Войти через Claude', waiting: 'Жду подтверждения на странице Claude…', again: 'Открыть страницу ещё раз', code: 'Если страница показала код — вставьте его сюда:', codeBtn: 'Готово', failed: 'Не получилось войти. Попробуйте ещё раз.' },
     needsLogin: 'Нужно войти в Claude.',thinking: 'Думаю…', stopped: 'Остановлено.', failed: 'Не получилось: ',
     mem: { idle: '', running: 'Обновляю память…', done: 'Память обновлена', error: 'Память не обновилась', nothing: 'Нового для памяти нет', waiting: 'Обновлю память, когда закончим' },
-    memBtn: 'Обновить память сейчас', micNo: 'Голосовой ввод работает в Chrome и Edge. В Windows можно нажать Win+H.',
+    memBtn: 'Обновить память сейчас', micNo: 'Микрофон сейчас недоступен. Проверьте, что он подключён и разрешён для этого окна.',
     legend: { memory: 'Главное', 'patient facts': 'Факты', hypotheses: 'Версии', questions: 'Вопросы', todo: 'Планы', history: 'История', branch: 'Темы', note: 'Заметки', vault: 'Из хранилища', document: 'Документы', missing: 'Нет заметки' },
     ago: (m) => m < 1 ? 'только что' : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.round(m / 60)} ч назад` : `${Math.round(m / 1440)} дн назад`,
   },
@@ -45,7 +45,7 @@ const I18N = {
     login: { title: "Let's connect the assistant", text: 'Press the button — a Claude page will open. Sign in to your account and press "Authorize". Then come back to this window.', btn: 'Sign in with Claude', waiting: 'Waiting for confirmation on the Claude page…', again: 'Open the page again', code: 'If the page shows a code, paste it here:', codeBtn: 'Done', failed: 'Sign-in failed. Please try again.' },
     needsLogin: 'Claude sign-in is needed.',thinking: 'Thinking…', stopped: 'Stopped.', failed: 'Failed: ',
     mem: { idle: '', running: 'Updating memory…', done: 'Memory updated', error: 'Memory update failed', nothing: 'Nothing new to remember', waiting: 'Will update memory when we finish' },
-    memBtn: 'Update memory now', micNo: 'Voice input works in Chrome and Edge. On Windows you can also press Win+H.',
+    memBtn: 'Update memory now', micNo: 'The microphone is not available. Check that it is connected and allowed for this window.',
     legend: { memory: 'Overview', 'patient facts': 'Facts', hypotheses: 'Hypotheses', questions: 'Questions', todo: 'Plans', history: 'History', branch: 'Topics', note: 'Notes', vault: 'From the vault', document: 'Documents', missing: 'No note yet' },
     ago: (m) => m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`,
   },
@@ -447,27 +447,55 @@ $('#closePanel').onclick = () => setPanel(false);
 $('.layout').id = 'layout';
 
 // ---------- voice ----------
+// Browser speech recognition stops on its own (pauses, ~1 minute limit). That is not an error:
+// while the mic is on we silently start a new round and keep appending. No pop-up dialogs, ever.
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null;
-function stopMic() { if (rec) { rec.stop(); rec = null; $('#mic').classList.remove('on'); } }
-$('#mic').onclick = () => {
-  if (rec) return stopMic();
-  if (!SR) { alert(T().micNo); return; }
-  rec = new SR();
-  rec.lang = lang === 'ru' ? 'ru-RU' : 'en-US';
-  rec.continuous = true;
-  rec.interimResults = true;
-  const base = $('#input').value ? $('#input').value.trimEnd() + ' ' : '';
-  rec.onresult = (e) => {
+let rec = null, micOn = false, micBase = '', micFails = 0;
+function micNote(text) {
+  let n = $('#micNote');
+  if (!n) { n = document.createElement('div'); n.id = 'micNote'; n.className = 'mic-note'; $('.composer').append(n); }
+  n.textContent = text || '';
+  n.classList.toggle('hidden', !text);
+}
+function stopMic() {
+  micOn = false;
+  $('#mic').classList.remove('on');
+  if (rec) { const r = rec; rec = null; try { r.stop(); } catch {} }
+}
+function micRound() {
+  if (!micOn) return;
+  const r = new SR();
+  rec = r;
+  r.lang = lang === 'ru' ? 'ru-RU' : 'en-US';
+  r.continuous = true;
+  r.interimResults = true;
+  micBase = $('#input').value ? $('#input').value.trimEnd() + ' ' : '';
+  r.onresult = (e) => {
+    micFails = 0;
     let t = '';
-    for (const r of e.results) t += r[0].transcript;
-    $('#input').value = base + t;
+    for (const x of e.results) t += x[0].transcript;
+    $('#input').value = micBase + t;
     autosize();
   };
-  rec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'network') alert(T().micNo); stopMic(); };
-  rec.onend = () => { if (rec) stopMic(); };
-  rec.start();
+  r.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { micNote(T().micNo); stopMic(); }
+    else micFails++;
+  };
+  r.onend = () => {
+    if (rec !== r || !micOn) return;
+    if (micFails > 5) { micNote(T().micNo); stopMic(); return; }
+    setTimeout(micRound, micFails ? 500 : 0);
+  };
+  try { r.start(); } catch { micFails++; setTimeout(micRound, 500); }
+}
+$('#mic').onclick = () => {
+  if (micOn) return stopMic();
+  micNote('');
+  if (!SR) { micNote(T().micNo); return; }
+  micOn = true;
+  micFails = 0;
   $('#mic').classList.add('on');
+  micRound();
 };
 
 // ---------- layout bits ----------
