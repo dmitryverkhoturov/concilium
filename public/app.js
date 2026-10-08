@@ -21,7 +21,7 @@ const I18N = {
       hypotheses: ['🔎', 'Разберись глубже', 'Изучить и обновить картину'],
       'update-memory': ['📝', 'Запомни разговор', 'Сохранить главное'],
     },
-    tool: { Read: 'Читаю', Glob: 'Ищу файлы', Grep: 'Ищу в заметках', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
+    tool: { Read: 'Вспоминаю записи', Glob: 'Вспоминаю записи', Grep: 'Вспоминаю записи', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
     login: { title: 'Подключим помощника', text: 'Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.', btn: 'Войти через Claude', waiting: 'Жду подтверждения на странице Claude…', again: 'Открыть страницу ещё раз', code: 'Если страница показала код — вставьте его сюда:', codeBtn: 'Готово', failed: 'Не получилось войти. Попробуйте ещё раз.' },
     needsLogin: 'Нужно войти в Claude.',thinking: 'Думаю…', stopped: 'Остановлено.', failed: 'Не получилось: ',
     mem: { idle: '', running: 'Обновляю память…', done: 'Память обновлена', error: 'Память не обновилась', nothing: 'Нового для памяти нет', waiting: 'Обновлю память, когда закончим' },
@@ -41,7 +41,7 @@ const I18N = {
       hypotheses: ['🔎', 'Dig deeper', 'Research and update the picture'],
       'update-memory': ['📝', 'Remember this talk', 'Save what matters'],
     },
-    tool: { Read: 'Reading', Glob: 'Looking for files', Grep: 'Searching notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },
+    tool: { Read: 'Recalling notes', Glob: 'Recalling notes', Grep: 'Recalling notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },
     login: { title: "Let's connect the assistant", text: 'Press the button — a Claude page will open. Sign in to your account and press "Authorize". Then come back to this window.', btn: 'Sign in with Claude', waiting: 'Waiting for confirmation on the Claude page…', again: 'Open the page again', code: 'If the page shows a code, paste it here:', codeBtn: 'Done', failed: 'Sign-in failed. Please try again.' },
     needsLogin: 'Claude sign-in is needed.',thinking: 'Thinking…', stopped: 'Stopped.', failed: 'Failed: ',
     mem: { idle: '', running: 'Updating memory…', done: 'Memory updated', error: 'Memory update failed', nothing: 'Nothing new to remember', waiting: 'Will update memory when we finish' },
@@ -313,12 +313,16 @@ async function send({ text, skill } = {}) {
           bubble.innerHTML = md(buf);
           box.scrollTop = box.scrollHeight;
         } else if (ev === 'tool') {
-          const label = T().tool[data.name] || data.name;
-          const now = work.querySelector('.now');
-          if (now) { now.className = ''; }
+          if (!T().tool[data.name]) continue; // internal plumbing (ToolSearch etc.) is not shown
+          const label = T().tool[data.name];
+          // File names mean nothing to the person; only web topics and sources are worth showing.
+          const showInput = ['WebSearch', 'WebFetch'].includes(data.name) && data.input;
+          const text = showInput ? `${label}: ${data.input}` : label;
+          if (work.lastChild?.textContent === text) continue;
+          work.querySelector('.now')?.classList.remove('now');
           const line = document.createElement('div');
           line.className = 'now';
-          line.textContent = `${label}${data.input ? ': ' + data.input : ''}`;
+          line.textContent = text;
           work.append(line);
           while (work.children.length > 4) work.firstChild.remove();
           box.scrollTop = box.scrollHeight;
