@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health Agent</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2330a46c'/><path d='M16 9v14M9 16h14' stroke='white' stroke-width='3.5' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <button class="icon-btn only-narrow" id="toggleSide" aria-label="menu">☰</button>
+    <div class="brand"><span class="logo">+</span><span data-i18n="app">Здоровье</span></div>
+    <nav class="people" id="people"></nav>
+    <div class="spacer"></div>
+    <button class="ghost" id="toggleMap" data-i18n="map">Карта</button>
+    <button class="ghost" id="lang">EN</button>
+  </header>
+
+  <main class="layout">
+    <aside class="side" id="side">
+      <button class="primary wide" id="newChat" data-i18n="newChat">Новый разговор</button>
+      <div class="side-title" data-i18n="chats">Разговоры</div>
+      <ul class="sessions" id="sessions"></ul>
+      <div class="memory" id="memory"></div>
+    </aside>
+
+    <section class="chat">
+      <div class="messages" id="messages"></div>
+      <div class="composer">
+        <div class="actions" id="actions"></div>
+        <div class="inputrow">
+          <button class="icon-btn mic" id="mic" title="">🎤</button>
+          <textarea id="input" rows="1" data-i18n-ph="placeholder"></textarea>
+          <button class="primary send" id="send" data-i18n="send">Отправить</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <div class="panel-head">
+        <button class="tab active" data-tab="graph" data-i18n="map">Карта</button>
+        <button class="tab" data-tab="note" data-i18n="note">Заметка</button>
+        <div class="spacer"></div>
+        <button class="icon-btn" id="closePanel">✕</button>
+      </div>
+      <div class="tabbody" id="graphTab">
+        <div id="graph"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="tabbody hidden" id="noteTab"><article class="note" id="note"></article></div>
+    </aside>
+  </main>
+
+  <dialog id="addPerson">
+    <form method="dialog" id="addForm">
+      <h3 data-i18n="addTitle">Добавить человека</h3>
+      <label><span data-i18n="name">Имя</span><input name="name" required></label>
+      <label><span data-i18n="folder">Папка с заметками о здоровье</span><input name="path" required placeholder="C:\Obsidian\...\Здоровье"></label>
+      <p class="err" id="addErr"></p>
+      <div class="row"><button value="cancel" class="ghost" formnovalidate data-i18n="cancel">Отмена</button><button class="primary" value="ok" data-i18n="add">Добавить</button></div>
+    </form>
+  </dialog>
+
+  <script src="vendor/marked/marked.umd.js"></script>
+  <script src="vendor/force-graph/force-graph.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

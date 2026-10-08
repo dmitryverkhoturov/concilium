@@ -1,0 +1,6 @@
+{
+  "name": "health-agent",
+  "version": "0.1.0",
+  "description": "Personal health research agent: memory upkeep, questions, research-backed hypotheses, next best step.",
+  "author": { "name": "Dima Verkhoturov" }
+}
