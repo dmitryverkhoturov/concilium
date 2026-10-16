@@ -15,7 +15,7 @@ const patientBrief = caseText.replace(/## Truth[\s\S]*?(?=\n## )/, '');
 
 const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 const RUN = path.join(HERE, 'runs', `${caseId}-${stamp}`);
-const FOLDER = path.join(RUN, 'Mark');
+const FOLDER = path.join(RUN, caseText.match(/## Persona\s+(\w+)/)?.[1] || 'Person');
 fs.cpSync(path.join(HERE, '..', 'concilium-markdown'), FOLDER, { recursive: true });
 fs.rmSync(path.join(FOLDER, 'README.md'));
 if (fs.existsSync(path.join(CASE, 'documents'))) fs.cpSync(path.join(CASE, 'documents'), path.join(FOLDER, 'documents'), { recursive: true });
@@ -65,7 +65,7 @@ ${patientBrief}
 
 Rules:
 - Answer only what is asked; volunteer nothing from "What Mark knows" unless the condition says so. Short, plain messages.
-- You do not know your diagnosis. Never name a disease, never suggest iron or genes.
+- You do not know your diagnosis. Never name the disease from the Truth or hint at its cause.
 - Tests: if the health agent recommended specific tests or imaging in its earlier messages, you may say you got them done since the last message and report the results from "Results" for exactly those tests, nothing more. A test not in the list is normal. Tests nobody recommended were not done.
 - If the agent asks you to choose a direction, pick what bothers you most.
 - Output only your next message, nothing else.`,

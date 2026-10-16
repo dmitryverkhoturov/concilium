@@ -70,6 +70,12 @@ function applyI18n() {
   $('#lang').textContent = lang === 'ru' ? 'EN' : 'RU';
   $('#send').title = T().send;
   $('#mic').title = lang === 'ru' ? 'Говорить голосом' : 'Speak';
+  // The desktop app has no browser speech service; the system's own dictation works in any text field.
+  if (/Electron/.test(navigator.userAgent)) {
+    $('#mic').style.display = 'none';
+    const keys = /Mac/.test(navigator.platform) ? 'Fn Fn' : 'Win+H';
+    $('#input').placeholder += lang === 'ru' ? ` Голосом: ${keys}` : ` By voice: ${keys}`;
+  }
   document.title = T().app;
 }
 

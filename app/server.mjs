@@ -10,7 +10,7 @@ import { query, listSessions, getSessionMessages } from '@anthropic-ai/claude-ag
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 // The folder template people can also use without the app; its skills and principles are the single source.
-const TEMPLATE = path.join(ROOT, '..', 'concilium-markdown');
+const TEMPLATE = process.env.CONCILIUM_TEMPLATE || path.join(ROOT, '..', 'concilium-markdown');
 // Portable by default: data lives next to the program. Run from the source checkout, it goes to the
 // user's app-data folder instead, so nobody's data can end up in the repository.
 const appData = () => process.platform === 'win32' ? process.env.APPDATA
@@ -62,6 +62,7 @@ const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) =>
 function agentOptions(p, extra = {}) {
   return {
     cwd: p.path,
+    ...(CLI !== 'claude' && { pathToClaudeCodeExecutable: CLI }),
     env: cleanEnv,
     plugins: [{ type: 'local', path: PLUGIN }],
     systemPrompt: { type: 'preset', preset: 'claude_code', append: PRINCIPLES },
@@ -251,7 +252,8 @@ function graph(p) {
 // The SDK ships its own Claude Code binary; sign-in runs through it, so nobody needs a terminal.
 
 const CLI = (() => {
-  const exe = path.join(ROOT, 'node_modules/@anthropic-ai', `claude-agent-sdk-${process.platform}-${process.arch}`, process.platform === 'win32' ? 'claude.exe' : 'claude');
+  // In the packaged app the binary is unpacked next to app.asar: executables cannot run from inside the archive.
+  const exe = path.join(ROOT.replace(/app\.asar$/, 'app.asar.unpacked'), 'node_modules/@anthropic-ai', `claude-agent-sdk-${process.platform}-${process.arch}`, process.platform === 'win32' ? 'claude.exe' : 'claude');
   return fs.existsSync(exe) ? exe : 'claude';
 })();
 

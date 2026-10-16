@@ -1,12 +1,15 @@
 {
   "name": "concilium",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A local health research agent for the whole family, built on Claude Code",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "desktop": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dmitry Verkhoturov",
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
@@ -15,5 +18,60 @@
     "force-graph": "^1.52.0",
     "marked": "^18.1.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "electron": "^38.8.6",
+    "electron-builder": "^26.15.3"
+  },
+  "productName": "Concilium",
+  "main": "main.cjs",
+  "build": {
+    "appId": "io.github.dmitryverkhoturov.concilium",
+    "productName": "Concilium",
+    "files": [
+      "main.cjs",
+      "server.mjs",
+      "public/**",
+      "icon.ico",
+      "package.json",
+      "node_modules/**",
+      "!node_modules/electron/**",
+      "!node_modules/electron-builder/**",
+      "!node_modules/app-builder-*/**"
+    ],
+    "asarUnpack": [
+      "node_modules/@anthropic-ai/claude-agent-sdk-*/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../concilium-markdown",
+        "to": "concilium-markdown"
+      }
+    ],
+    "directories": {
+      "output": "../dist"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "portable": {
+      "artifactName": "Concilium-${version}-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "Concilium-${version}-Setup.exe",
+      "oneClick": true,
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.medical",
+      "artifactName": "Concilium-${version}-${arch}.${ext}"
+    }
+  }
 }
