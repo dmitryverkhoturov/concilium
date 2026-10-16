@@ -29,7 +29,7 @@ const I18N = {
       'next-step': [I.next, 'Что делать дальше', 'Один лучший следующий шаг'],
       'ask-questions': [I.ask, 'Задай мне вопросы', 'Уточнить то, что важно'],
       hypotheses: [I.deep, 'Разберись глубже', 'Изучить и обновить картину'],
-      'update-memory': [I.mem, 'Запомни разговор', 'Сохранить главное'],
+      sleep: [I.mem, 'Запомни разговор', 'Сохранить главное'],
     },
     tool: { Read: 'Вспоминаю записи', Glob: 'Вспоминаю записи', Grep: 'Вспоминаю записи', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
     login: { title: 'Подключим помощника', text: 'Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.', btn: 'Войти через Claude', waiting: 'Жду подтверждения на странице Claude…', again: 'Открыть страницу ещё раз', code: 'Если страница показала код — вставьте его сюда:', codeBtn: 'Готово', failed: 'Не получилось войти. Попробуйте ещё раз.' },
@@ -49,7 +49,7 @@ const I18N = {
       'next-step': [I.next, 'What should I do next', 'One best next step'],
       'ask-questions': [I.ask, 'Ask me questions', 'Clarify what matters'],
       hypotheses: [I.deep, 'Dig deeper', 'Research and update the picture'],
-      'update-memory': [I.mem, 'Remember this talk', 'Save what matters'],
+      sleep: [I.mem, 'Remember this talk', 'Save what matters'],
     },
     tool: { Read: 'Recalling notes', Glob: 'Recalling notes', Grep: 'Recalling notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },
     login: { title: "Let's connect the assistant", text: 'Press the button — a Claude page will open. Sign in to your account and press "Authorize". Then come back to this window.', btn: 'Sign in with Claude', waiting: 'Waiting for confirmation on the Claude page…', again: 'Open the page again', code: 'If the page shows a code, paste it here:', codeBtn: 'Done', failed: 'Sign-in failed. Please try again.' },
@@ -147,7 +147,7 @@ async function loadSessions() {
   }
 }
 function cleanTitle(t) {
-  const m = t.match(/health-agent:([\w-]+)/);
+  const m = t.match(/(?:concilium|health-agent):([\w-]+)/);
   if (m && T().a[m[1]]) return T().a[m[1]][1];
   return t.replace(/<[^>]+>/g, '').trim() || '…';
 }
@@ -354,8 +354,8 @@ async function send({ text, skill } = {}) {
   } finally {
     work.remove();
     S.streaming = null;
-    S.dirty = skill !== 'update-memory';
-    if (skill === 'update-memory') S.dirty = false;
+    S.dirty = skill !== 'sleep';
+    if (skill === 'sleep') S.dirty = false;
     setBusy(false);
     armIdle();
     loadSessions();

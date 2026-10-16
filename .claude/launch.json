@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "health-agent", "runtimeExecutable": "node", "runtimeArgs": ["server.mjs"], "port": 4747 }
+    { "name": "concilium", "runtimeExecutable": "node", "runtimeArgs": ["app/server.mjs"], "port": 4747 }
   ]
 }

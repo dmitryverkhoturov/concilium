@@ -5,7 +5,7 @@ description: Decide the single best next step for the person's health — resear
 
 # The best next step
 
-1. Silently read MEMORY, HYPOTHESES, TODO, QUESTIONS and HISTORY. Check for red flags first; if any, say so plainly and point to urgent care — stop there.
+1. Silently read MEMORY, HYPOTHESES, TODO and HISTORY. Check for red flags first; if any, say so plainly and point to urgent care — stop there.
 2. List candidate moves in this order of cost: research → question to the person → self-observation at home → lab test / imaging → specialist visit.
 3. For each candidate estimate: which rival hypotheses it separates, how likely it is to change what we do, and its cost and burden for the person. Drop anything already done, already proposed without new reasons, or that changes nothing.
 4. If the best move is **research**, do it now (web search, the person's documents) instead of telling them to wait, then re-evaluate.

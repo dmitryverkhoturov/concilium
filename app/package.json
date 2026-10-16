@@ -1,5 +1,5 @@
 {
-  "name": "health-agent",
+  "name": "concilium",
   "version": "1.0.0",
   "description": "A local health research agent for the whole family, built on Claude Code",
   "scripts": {

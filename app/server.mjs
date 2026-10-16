@@ -1,19 +1,38 @@
-// Health Agent — local server.
+// Concilium — local server.
 // Wraps the Claude Agent SDK (Claude Code as a library) around a person's health folder.
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawn, execFile } from 'node:child_process';
 import { query, listSessions, getSessionMessages } from '@anthropic-ai/claude-agent-sdk';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const PLUGIN = path.join(ROOT, 'plugin');
-const DATA = process.env.HEALTH_AGENT_DATA || path.join(ROOT, 'data');
+// The folder template people can also use without the app; its skills and principles are the single source.
+const TEMPLATE = path.join(ROOT, '..', 'concilium-markdown');
+// Portable by default: data lives next to the program. Run from the source checkout, it goes to the
+// user's app-data folder instead, so nobody's data can end up in the repository.
+const appData = () => process.platform === 'win32' ? process.env.APPDATA
+  : process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Application Support')
+  : process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+const DATA = process.env.CONCILIUM_DATA
+  || (fs.existsSync(path.join(ROOT, '..', '.git')) ? path.join(appData(), 'Concilium') : path.join(ROOT, 'data'));
 const PORT = Number(process.env.PORT || 4747);
-const PRINCIPLES = fs.readFileSync(path.join(PLUGIN, 'PRINCIPLES.md'), 'utf8');
+const PRINCIPLES = fs.readFileSync(path.join(TEMPLATE, 'PRINCIPLES.md'), 'utf8') + `
+## In this app
+
+The person may be elderly and not technical at all. They do not know what files, memory, skills, agents or markdown are, and they must never need to. Never mention files, folders, skills, tools, sessions or \`AGENTS.md\`: say "I noted that", not "I updated PATIENT FACTS.md". Short, warm, plain words.
+`;
 
 fs.mkdirSync(DATA, { recursive: true });
+
+// The SDK loads skills from a plugin; build it from the template's skills on every start.
+const PLUGIN = path.join(DATA, 'plugin');
+fs.rmSync(PLUGIN, { recursive: true, force: true });
+fs.mkdirSync(path.join(PLUGIN, '.claude-plugin'), { recursive: true });
+fs.writeFileSync(path.join(PLUGIN, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'concilium', description: 'Concilium health skills' }));
+fs.cpSync(path.join(TEMPLATE, '.claude', 'skills'), path.join(PLUGIN, 'skills'), { recursive: true });
 const CONFIG = path.join(DATA, 'config.json');
 const STATE = path.join(DATA, 'state.json');
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -32,7 +51,7 @@ const inside = (dir, f) => {
 
 // ---------- agent ----------
 
-const SKILLS = ['update-memory', 'ask-questions', 'hypotheses', 'next-step'];
+const SKILLS = fs.readdirSync(path.join(PLUGIN, 'skills'));
 const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Skill', 'Task', 'Agent', 'TodoWrite', 'ToolSearch']);
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
 
@@ -71,8 +90,8 @@ function textOf(content) {
   return content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
 }
 function prettyCommand(t) {
-  const m = t.match(/<command-name>\/?(?:health-agent:)?([\w-]+)<\/command-name>/);
-  if (m) return { skill: m[1] };
+  const m = t.match(/<command-name>\/?(?:concilium:|health-agent:)?([\w-]+)<\/command-name>/);
+  if (m) return { skill: m[1] === 'update-memory' ? 'sleep' : m[1] };
   if (/^<(local-command|command-message|command-args)/.test(t.trim())) return null;
   return { text: t };
 }
@@ -99,7 +118,7 @@ async function conversation(p, sessionId) {
 }
 
 // ---------- automatic memory pass ("dream") ----------
-// After a conversation ends, a separate headless session runs the update-memory skill on it.
+// After a conversation ends, a separate headless session runs the sleep skill on it.
 
 const dreaming = new Map(); // personId -> Promise
 const dreamLog = new Map(); // personId -> {status, at, summary}
@@ -129,7 +148,7 @@ async function dream(p, sessionIds) {
       let summary = '';
       if (parts.length) {
         const q = query({
-          prompt: `/health-agent:update-memory\n\nConversations to consolidate:\n\n${parts.join('\n\n')}`,
+          prompt: `/concilium:sleep\n\nConversations to consolidate:\n\n${parts.join('\n\n')}`,
           options: agentOptions(p, { persistSession: false }),
         });
         for await (const m of q) if (m.type === 'result') summary = m.result || '';
@@ -154,7 +173,7 @@ async function dream(p, sessionIds) {
 const KINDS = ['MEMORY', 'PATIENT FACTS', 'HYPOTHESES', 'QUESTIONS', 'TODO', 'HISTORY', 'IDENTITY'];
 function kindOf(rel) {
   const base = path.basename(rel, '.md');
-  if (rel.split(/[\\/]/)[0] === 'branches') return 'branch';
+  if (['topics', 'branches'].includes(rel.split(/[\\/]/)[0])) return 'branch';
   for (const k of KINDS) if (base === k || base.endsWith(' ' + k) || base.endsWith('_' + k.replace(' ', '_'))) return k.toLowerCase();
   if (base === 'AGENTS' || base === 'CLAUDE' || base === 'README') return 'system';
   if (!rel.endsWith('.md')) return 'document';
@@ -333,7 +352,7 @@ app.post('/api/people/:id/chat', h(async (req, res) => {
   const { text, sessionId, skill } = req.body || {};
   if (!text && !skill) return res.status(400).json({ error: 'empty' });
   if (skill && !SKILLS.includes(skill)) return res.status(400).json({ error: 'unknown skill' });
-  const prompt = skill ? `/health-agent:${skill}${text ? ' ' + text : ''}` : text;
+  const prompt = skill ? `/concilium:${skill}${text ? ' ' + text : ''}` : text;
 
   res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   const send = (ev, data) => res.write(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -371,4 +390,4 @@ function summarizeInput(name, i = {}) {
   return '';
 }
 
-app.listen(PORT, '127.0.0.1', () => console.log(`Health Agent: http://localhost:${PORT}`));
+app.listen(PORT, '127.0.0.1', () => console.log(`Concilium: http://localhost:${PORT}`));

@@ -9,7 +9,7 @@ This is the heaviest skill. Take time; depth beats speed. The goal is the best c
 
 ## 1. Know the person
 
-Read MEMORY, PATIENT FACTS, HYPOTHESES, HISTORY, relevant branches and the documents they point to (PDFs included). List the key facts: symptoms with timeline, findings, results, what was tried and how it went.
+Read MEMORY, PATIENT FACTS, HYPOTHESES, HISTORY, relevant topics and the documents they point to (PDFs included). List the key facts: symptoms with timeline, findings, results, what was tried and how it went.
 
 ## 2. Generate candidates
 
@@ -36,9 +36,9 @@ Before writing, run through these roles yourself:
 
 ## 5. Write it down
 
-- Details of each hypothesis (mechanism, evidence, sources, rivals, next steps) go into **its branch** in `branches/`. The leading hypothesis and every hypothesis you researched in depth must have a branch named after what it claims; create it if missing, and create a new one instead of stretching an old branch whose name no longer fits.
-- HYPOTHESES keeps the short registry: per hypothesis the claim, likelihood, key for/against, one-line next step, and a `[[link]]` to its branch. Plus the integral model in a few lines.
-- A dated HISTORY entry: what changed and why. Use `[[wikilinks]]` to related files and branches.
+- Details of each hypothesis (mechanism, evidence, sources, rivals, next steps) go into **its topic** in `topics/`. The leading hypothesis and every hypothesis you researched in depth must have a topic named after what it claims; create it if missing, and create a new one instead of stretching an old topic whose name no longer fits.
+- HYPOTHESES keeps the short registry: per hypothesis the claim, likelihood, key for/against, one-line next step, and a `[[link]]` to its topic. Plus the integral model in a few lines.
+- A dated HISTORY entry: what changed and why. Use `[[wikilinks]]` to related files and topics.
 
 ## 6. Tell the person
 
