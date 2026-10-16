@@ -41,9 +41,6 @@
       "!node_modules/electron-builder/**",
       "!node_modules/app-builder-*/**"
     ],
-    "asarUnpack": [
-      "node_modules/@anthropic-ai/claude-agent-sdk-*/**"
-    ],
     "extraResources": [
       {
         "from": "../concilium-markdown",
@@ -74,6 +71,7 @@
       ],
       "category": "public.app-category.medical",
       "artifactName": "Concilium-${version}-${arch}.${ext}"
-    }
+    },
+    "asar": false
   }
 }

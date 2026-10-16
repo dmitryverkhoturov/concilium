@@ -49,10 +49,11 @@ app.whenReady().then(async () => {
   // CONCILIUM_SHOT=<file.png>: save a screenshot of the loaded window and quit (smoke test, README images).
   if (process.env.CONCILIUM_SHOT) for (const ev of ['did-start-loading', 'dom-ready', 'did-finish-load', 'did-fail-load', 'render-process-gone'])
     win.webContents.on(ev, (...a) => logError(`[${ev}] ${a.slice(1).map(String).join(' ')}`));
+  if (process.env.CONCILIUM_SHOT) win.webContents.on('console-message', (e) => logError(`[console ${e.level}] ${e.message}`));
   if (process.env.CONCILIUM_SHOT) win.webContents.once('did-finish-load', () => setTimeout(async () => {
     try { fs.writeFileSync(process.env.CONCILIUM_SHOT, (await win.webContents.capturePage()).toPNG()); } catch (e) { logError(e); }
     app.exit(0);
-  }, 4000));
+  }, Number(process.env.CONCILIUM_SHOT_DELAY || 4000)));
 });
 
 app.on('window-all-closed', () => app.quit());
