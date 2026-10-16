@@ -32,7 +32,15 @@ const PLUGIN = path.join(DATA, 'plugin');
 fs.rmSync(PLUGIN, { recursive: true, force: true });
 fs.mkdirSync(path.join(PLUGIN, '.claude-plugin'), { recursive: true });
 fs.writeFileSync(path.join(PLUGIN, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'concilium', description: 'Concilium health skills' }));
-fs.cpSync(path.join(TEMPLATE, '.claude', 'skills'), path.join(PLUGIN, 'skills'), { recursive: true });
+// Plain recursive copy: fs.cpSync crashes Electron's process on non-ASCII paths.
+const copyDir = (from, to) => {
+  fs.mkdirSync(to, { recursive: true });
+  for (const e of fs.readdirSync(from, { withFileTypes: true })) {
+    if (e.isDirectory()) copyDir(path.join(from, e.name), path.join(to, e.name));
+    else fs.copyFileSync(path.join(from, e.name), path.join(to, e.name));
+  }
+};
+copyDir(path.join(TEMPLATE, '.claude', 'skills'), path.join(PLUGIN, 'skills'));
 const CONFIG = path.join(DATA, 'config.json');
 const STATE = path.join(DATA, 'state.json');
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -258,7 +266,7 @@ const CLI = (() => {
 })();
 
 function authStatus() {
-  return new Promise((resolve) => execFile(CLI, ['auth', 'status', '--json'], { env: cleanEnv, timeout: 30000 }, (err, out) => {
+  return new Promise((resolve) => execFile(CLI, ['auth', 'status', '--json'], { env: cleanEnv, timeout: 90000 }, (err, out) => {
     try { const j = JSON.parse(out); resolve({ loggedIn: !!j.loggedIn, email: j.email || j.account?.email }); }
     catch { resolve({ loggedIn: false, error: String(err?.message || 'status failed') }); }
   }));
