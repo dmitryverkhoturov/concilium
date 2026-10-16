@@ -32,7 +32,11 @@ app.whenReady().then(async () => {
     ? path.join(process.resourcesPath, 'concilium-markdown')
     : path.join(__dirname, '..', 'concilium-markdown');
   fs.mkdirSync(process.env.CONCILIUM_DATA, { recursive: true });
-  await import(pathToFileURL(path.join(__dirname, 'server.mjs')).href);
+  const logFile = path.join(process.env.CONCILIUM_DATA, 'concilium.log');
+  const logError = (e) => fs.appendFileSync(logFile, `${new Date().toISOString()} ${e?.stack || e}\n`);
+  process.on('uncaughtException', logError);
+  process.on('unhandledRejection', logError);
+  try { await import(pathToFileURL(path.join(__dirname, 'server.mjs')).href); } catch (e) { logError(e); }
   for (let i = 0; i < 200 && !(await up()); i++) await new Promise((r) => setTimeout(r, 100));
 
   win = new BrowserWindow({
