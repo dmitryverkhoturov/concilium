@@ -91,7 +91,7 @@ function textOf(content) {
 }
 function prettyCommand(t) {
   const m = t.match(/<command-name>\/?(?:concilium:|health-agent:)?([\w-]+)<\/command-name>/);
-  if (m) return { skill: m[1] === 'update-memory' ? 'sleep' : m[1] };
+  if (m) return { skill: { 'update-memory': 'sleep', hypotheses: 'research' }[m[1]] || m[1] };
   if (/^<(local-command|command-message|command-args)/.test(t.trim())) return null;
   return { text: t };
 }

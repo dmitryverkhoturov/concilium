@@ -28,7 +28,7 @@ const I18N = {
     a: {
       'next-step': [I.next, 'Что делать дальше', 'Один лучший следующий шаг'],
       'ask-questions': [I.ask, 'Задай мне вопросы', 'Уточнить то, что важно'],
-      hypotheses: [I.deep, 'Разберись глубже', 'Изучить и обновить картину'],
+      research: [I.deep, 'Разберись глубже', 'Изучить и обновить картину'],
       sleep: [I.mem, 'Запомни разговор', 'Сохранить главное'],
     },
     tool: { Read: 'Вспоминаю записи', Glob: 'Вспоминаю записи', Grep: 'Вспоминаю записи', WebSearch: 'Ищу в интернете', WebFetch: 'Читаю источник', Write: 'Записываю', Edit: 'Записываю', MultiEdit: 'Записываю', Skill: 'Беру метод', Task: 'Поручаю помощнику', Agent: 'Поручаю помощнику', TodoWrite: 'Планирую' },
@@ -48,7 +48,7 @@ const I18N = {
     a: {
       'next-step': [I.next, 'What should I do next', 'One best next step'],
       'ask-questions': [I.ask, 'Ask me questions', 'Clarify what matters'],
-      hypotheses: [I.deep, 'Dig deeper', 'Research and update the picture'],
+      research: [I.deep, 'Dig deeper', 'Research and update the picture'],
       sleep: [I.mem, 'Remember this talk', 'Save what matters'],
     },
     tool: { Read: 'Recalling notes', Glob: 'Recalling notes', Grep: 'Recalling notes', WebSearch: 'Searching the web', WebFetch: 'Reading a source', Write: 'Writing down', Edit: 'Writing down', MultiEdit: 'Writing down', Skill: 'Using method', Task: 'Asking a helper', Agent: 'Asking a helper', TodoWrite: 'Planning' },

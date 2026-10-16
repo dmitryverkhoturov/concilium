@@ -36,7 +36,7 @@ Something the person repeated, or "I already told you", is a failure signal: rec
 
 - facts → `PATIENT FACTS` or its facts topic;
 - an answer to an open question → the fact goes to facts, the question leaves `TODO`;
-- new or weakened evidence → the hypothesis's topic, and its line in `HYPOTHESES` (probability, key for/against). Do not re-research here; that is the `hypotheses` skill;
+- new or weakened evidence → the hypothesis's topic, and its line in `HYPOTHESES` (probability, key for/against). Do not re-research here; that is the `research` skill;
 - decisions, done or declined steps → `HISTORY` in a dated line; the future → `TODO`;
 - new open questions → `TODO` under **Questions**, with which hypotheses they separate;
 - the picture changed → `MEMORY` "Current picture" and its date;

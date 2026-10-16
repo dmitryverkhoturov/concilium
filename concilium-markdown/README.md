@@ -33,7 +33,7 @@ In `.claude/skills/`, picked up by Claude Code automatically:
 
 - **sleep** — remember the conversation: integrate it into memory and keep memory small.
 - **ask-questions** — the one to three questions that would most change the picture.
-- **hypotheses** — deep research: rival hypotheses checked against your facts and the literature.
+- **research** — deep research: finds contradictions and non-obvious links in your own facts, turns them into questions, checks them in the medical literature.
 - **next-step** — the single best next step, by value of information, not by reflex.
 
 Skills use the open `SKILL.md` format. For other agents, copy `.claude/skills/` to the place your agent reads skills from.
