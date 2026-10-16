@@ -296,6 +296,7 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(ROOT, 'public')));
 app.use('/vendor/force-graph', express.static(path.join(ROOT, 'node_modules/force-graph/dist')));
 app.use('/vendor/marked', express.static(path.join(ROOT, 'node_modules/marked/lib')));
+app.use('/vendor/fonts', express.static(path.join(ROOT, 'node_modules/@fontsource')));
 
 const h = (fn) => (req, res) => Promise.resolve(fn(req, res)).catch((e) => res.status(e.status || 500).json({ error: String(e.message || e) }));
 
@@ -400,4 +401,5 @@ function summarizeInput(name, i = {}) {
   return '';
 }
 
-app.listen(PORT, '127.0.0.1', () => console.log(`Concilium: http://localhost:${PORT}`));
+// The desktop shell waits on this instead of polling over HTTP (proxy auto-detection can stall that for ~20 s).
+export const ready = new Promise((resolve) => app.listen(PORT, '127.0.0.1', () => { console.log(`Concilium: http://localhost:${PORT}`); resolve(); }));

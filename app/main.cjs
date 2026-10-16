@@ -18,10 +18,6 @@ function dataDir() {
   return path.join(dir, 'Concilium data');
 }
 
-async function up() {
-  try { return (await fetch(`http://localhost:${PORT}/api/people`)).ok; } catch { return false; }
-}
-
 let win;
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 
@@ -36,8 +32,7 @@ app.whenReady().then(async () => {
   const logError = (e) => fs.appendFileSync(logFile, `${new Date().toISOString()} ${e?.stack || e}\n`);
   process.on('uncaughtException', logError);
   process.on('unhandledRejection', logError);
-  try { await import(pathToFileURL(path.join(__dirname, 'server.mjs')).href); } catch (e) { logError(e); }
-  for (let i = 0; i < 200 && !(await up()); i++) await new Promise((r) => setTimeout(r, 100));
+  try { await (await import(pathToFileURL(path.join(__dirname, 'server.mjs')).href)).ready; } catch (e) { logError(e); }
 
   win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 900, minHeight: 600,
@@ -47,9 +42,17 @@ app.whenReady().then(async () => {
   // Links (sources, sign-in page) open in the normal browser, not inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith(`http://localhost:${PORT}`)) { e.preventDefault(); shell.openExternal(url); }
+    if (!url.startsWith(`http://127.0.0.1:${PORT}`)) { e.preventDefault(); shell.openExternal(url); }
   });
-  win.loadURL(`http://localhost:${PORT}`);
+  win.loadURL(`http://127.0.0.1:${PORT}`);
+
+  // CONCILIUM_SHOT=<file.png>: save a screenshot of the loaded window and quit (smoke test, README images).
+  if (process.env.CONCILIUM_SHOT) for (const ev of ['did-start-loading', 'dom-ready', 'did-finish-load', 'did-fail-load', 'render-process-gone'])
+    win.webContents.on(ev, (...a) => logError(`[${ev}] ${a.slice(1).map(String).join(' ')}`));
+  if (process.env.CONCILIUM_SHOT) win.webContents.once('did-finish-load', () => setTimeout(async () => {
+    try { fs.writeFileSync(process.env.CONCILIUM_SHOT, (await win.webContents.capturePage()).toPNG()); } catch (e) { logError(e); }
+    app.exit(0);
+  }, 4000));
 });
 
 app.on('window-all-closed', () => app.quit());
