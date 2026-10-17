@@ -16,11 +16,23 @@ Both share the same memory layout, principles and skills: the app is a shell aro
 ## Repository
 
 ```
-app/                  the desktop app: local server over the Claude Agent SDK, web UI
+windows/              the Windows app: native WPF (.NET 8), talks to Claude Code directly
+app/                  the older Electron app: local server over the Claude Agent SDK, web UI
 concilium-markdown/   the folder template: AGENTS, MEMORY skeleton, principles, skills
 ```
 
-## Run the app from source
+## Windows app
+
+Native WPF on .NET 8. It runs the Claude Code binary in stream-json mode — no Node, no local server — and starts it ahead of time, so the first answer does not wait for Claude to boot. Conversations are Claude Code's own (`~/.claude/projects/...`).
+
+```bash
+cd windows
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ../dist/Concilium
+```
+
+The published folder holds `Concilium.exe`, the `concilium-markdown` template and `claude/claude.exe` (taken from `app/node_modules` of the Agent SDK). App data goes to `Concilium data` next to the exe; run from `bin/` it goes to `%APPDATA%\Concilium`. `CONCILIUM_SHOT=<png>` saves a picture of the window and quits (smoke test).
+
+## Run the older Electron app from source
 
 Requires Node.js 20+ and a Claude account.
 

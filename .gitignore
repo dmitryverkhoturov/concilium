@@ -3,3 +3,5 @@ app/data/
 eval/runs/
 dist/
 build.log
+windows/bin/
+windows/obj/
