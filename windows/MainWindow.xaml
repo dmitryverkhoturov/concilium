@@ -6,7 +6,11 @@
         Icon="icon.ico" Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen"
         FontFamily="{StaticResource Sans}" Foreground="{StaticResource Text}" FontSize="15"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
-    <Grid>
+    <!-- No system title bar: the app's own header is the caption (drag, double-click, snap all work). -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+    <Grid x:Name="Root">
         <!-- Soft aura in the background, the only decoration. -->
         <Canvas IsHitTestVisible="False" ClipToBounds="True">
             <Ellipse Width="900" Height="900" Canvas.Left="-300" Canvas.Top="-360">
@@ -17,6 +21,12 @@
             </Ellipse>
         </Canvas>
 
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Panel.ZIndex="10" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button x:Name="MinBtn" Style="{StaticResource Caption}" Content="&#xE921;" Click="Min_Click"/>
+            <Button x:Name="MaxBtn" Style="{StaticResource Caption}" Content="&#xE922;" Click="Max_Click"/>
+            <Button x:Name="CloseBtn" Style="{StaticResource CaptionClose}" Content="&#xE8BB;" Click="Close_Click"/>
+        </StackPanel>
+
         <Grid Margin="16,0,16,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="64"/>
@@ -24,7 +34,7 @@
             </Grid.RowDefinitions>
 
             <!-- Top: brand, people, map toggle, language. -->
-            <DockPanel Grid.Row="0" LastChildFill="False">
+            <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,138,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="4,0,24,0">
                     <Viewbox Width="30" Height="30" Margin="0,0,10,0">
                         <Canvas Width="64" Height="64">
@@ -35,9 +45,9 @@
                     </Viewbox>
                     <TextBlock Text="Concilium" FontFamily="{StaticResource Serif}" FontSize="21" VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel x:Name="People" Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <Button x:Name="LangBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Content="EN" Click="Lang_Click"/>
-                <Button x:Name="MapBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Click="Map_Click"/>
+                <StackPanel x:Name="People" Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                <Button x:Name="LangBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Content="EN" Click="Lang_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                <Button x:Name="MapBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Click="Map_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
             </DockPanel>
 
             <Grid Grid.Row="1">
@@ -65,11 +75,11 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="0,4,6,4">
+                    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="0,4,14,4">
                         <StackPanel x:Name="Messages" MaxWidth="820" Margin="8,8,8,16"/>
                     </ScrollViewer>
                     <StackPanel Grid.Row="1" MaxWidth="836">
-                        <UniformGrid x:Name="Actions" Rows="1" Margin="0,8,-6,0"/>
+                        <WrapPanel x:Name="Actions" Margin="0,8,0,0"/>
                         <Border Style="{StaticResource Panel}" Background="{StaticResource GlassStrong}" CornerRadius="22" Padding="16,6,6,6">
                             <Grid>
                                 <Grid.ColumnDefinitions>

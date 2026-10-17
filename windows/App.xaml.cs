@@ -29,6 +29,19 @@ public partial class App : Application
     }
 }
 
+// Corner radius for buttons: a number from Tag, or "pill" = exactly half the height
+// (a radius larger than that makes WPF draw an oval, not a capsule).
+public class RadiusConverter : System.Windows.Data.IMultiValueConverter
+{
+    public object Convert(object[] v, Type t, object p, System.Globalization.CultureInfo c)
+    {
+        var h = v.Length > 1 && v[1] is double d ? d : 0;
+        if (v[0] is string s && s == "pill") return new CornerRadius(h / 2);
+        return new CornerRadius(double.TryParse(v[0]?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var r) ? Math.Min(r, h / 2) : 0);
+    }
+    public object[] ConvertBack(object v, Type[] t, object p, System.Globalization.CultureInfo c) => throw new NotSupportedException();
+}
+
 static class NativeMethods
 {
     [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);

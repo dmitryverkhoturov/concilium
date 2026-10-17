@@ -42,7 +42,34 @@ public partial class MainWindow : Window
         catch { }
         idle.Tick += (_, _) => { idle.Stop(); EndConversation(); };
         Graph.NodeClicked += n => { if (n.kind != "missing") OpenNote(n.id); };
+        // Fit the screen: on a laptop the 1400×900 default would push the title bar off the top.
+        var wa = SystemParameters.WorkArea;
+        // Smoke-test mode never touches the real screen: the window is drawn off-screen, without focus,
+        // at the size of the emulated screen (CONCILIUM_SCREEN=1366x720).
+        var shotMode = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
+        if (shotMode && Environment.GetEnvironmentVariable("CONCILIUM_SCREEN") is { } scr && scr.Split('x') is [var sw, var sh2]
+            && double.TryParse(sw, out var w0) && double.TryParse(sh2, out var h0)) wa = new Rect(0, 0, w0, h0);
+        if (shotMode)
+        {
+            ShowActivated = false;
+            ShowInTaskbar = false;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = -20000; Top = -20000;
+            // "Maximized" on a small screen = the whole work area.
+            if (wa.Width < 1450 || wa.Height < 950) { Width = wa.Width; Height = wa.Height; } else { Width = 1400; Height = 900; }
+        }
+        else if (wa.Width < 1450 || wa.Height < 950) WindowState = WindowState.Maximized;
         Loaded += (_, _) => Start();
+        SizeChanged += (_, _) => { if (panelOpen) PanelCol.Width = new GridLength(PanelWidth); };
+        // Always come up in front and visible, even if launched "minimized" by a shortcut.
+        if (!shotMode) ContentRendered += (_, _) =>
+        {
+            if (WindowState == WindowState.Minimized) WindowState = wa.Width < 1450 || wa.Height < 950 ? WindowState.Maximized : WindowState.Normal;
+            Activate();
+            Topmost = true;
+            Topmost = false;
+            Focus();
+        };
         // CONCILIUM_SHOT=<file.png>: save a picture of the window and quit (smoke test, README images).
         if (Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 } shot)
             ContentRendered += async (_, _) =>
@@ -465,9 +492,7 @@ public partial class MainWindow : Window
         Actions.Children.Clear();
         foreach (var a in T.Actions)
         {
-            var content = IconText(a.icon, a.title, Brush("Accent"), 16);
-            ((TextBlock)content.Children[1]).TextTrimming = TextTrimming.CharacterEllipsis;
-            var b = new Button { Content = content, Style = (Style)FindResource("Chip"), ToolTip = a.sub, Padding = new Thickness(8, 6, 8, 6) };
+            var b = new Button { Content = IconText(a.icon, a.title, Brush("Accent"), 15), Style = (Style)FindResource("Chip"), ToolTip = a.sub };
             b.Click += (_, _) => Send(null, a.skill);
             Actions.Children.Add(b);
         }
@@ -500,7 +525,7 @@ public partial class MainWindow : Window
         RemoveWelcome();
         var a = T.Actions.FirstOrDefault(x => x.skill == skill);
         Messages.Children.Add(new Border { Child = a != null ? IconText(a.icon, a.title, Brush("Accent"), 16) : new TextBlock { Text = skill },
-            Background = Brush("GlassStrong"), BorderBrush = Brush("Edge"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(999),
+            Background = Brush("GlassStrong"), BorderBrush = Brush("Edge"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(18),
             Padding = new Thickness(14, 8, 16, 8), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 10) });
         TextElement.SetForeground((Border)Messages.Children[^1], Brush("AccentDeep"));
     }
@@ -511,12 +536,6 @@ public partial class MainWindow : Window
         var rtb = new RichTextBox { IsReadOnly = true, IsDocumentEnabled = true, BorderThickness = new Thickness(0), Background = Brushes.Transparent,
             Padding = new Thickness(0), Margin = new Thickness(0, 10, 0, 10), Foreground = Brush("Text"), SelectionBrush = Brush("AccentHi"),
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Document = Markdown.Render(md, null, 15.5) };
-        // The message must not swallow the wheel: the whole conversation scrolls.
-        rtb.PreviewMouseWheel += (_, e) =>
-        {
-            e.Handled = true;
-            Scroller.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = MouseWheelEvent });
-        };
         Messages.Children.Add(rtb);
         return rtb;
     }
@@ -732,11 +751,14 @@ public partial class MainWindow : Window
 
     void Map_Click(object s, RoutedEventArgs e) => SetPanel(!panelOpen);
 
+    // The map gives way to the conversation on a laptop screen.
+    double PanelWidth => ActualWidth > 0 && ActualWidth < 1450 ? 340 : 400;
+
     void SetPanel(bool open)
     {
         panelOpen = open;
         PanelBox.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        PanelCol.Width = open ? new GridLength(400) : new GridLength(0);
+        PanelCol.Width = open ? new GridLength(PanelWidth) : new GridLength(0);
         SaveUi();
         if (open && graph == null) LoadGraph();
     }
@@ -803,6 +825,33 @@ public partial class MainWindow : Window
         var n = name.ToLowerInvariant();
         var node = graph?.nodes.FirstOrDefault(x => x.label.ToLowerInvariant() == n || x.id.ToLowerInvariant() == n);
         if (node != null && node.kind != "missing") OpenNote(node.id);
+    }
+
+    // ---------- window buttons ----------
+
+    void Min_Click(object s, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    void Max_Click(object s, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    void Close_Click(object s, RoutedEventArgs e) => Close();
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        // A maximized window without the system frame hangs over the screen edge by the resize border.
+        var b = SystemParameters.WindowResizeBorderThickness;
+        Root.Margin = WindowState == WindowState.Maximized ? new Thickness(b.Left + 4, b.Top + 4, b.Right + 4, b.Bottom + 4) : new Thickness(0);
+        MaxBtn.Content = WindowState == WindowState.Maximized ? "" : "";
+    }
+
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        // Rounded corners like every Windows 11 window (ignored on Windows 10).
+        var round = 2;
+        try { DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 33, ref round, sizeof(int)); } catch { }
+        OnStateChanged(EventArgs.Empty);
     }
 
     // ---------- closing ----------

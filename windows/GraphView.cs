@@ -130,16 +130,23 @@ public class GraphView : FrameworkElement
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         foreach (var n in nodes)
         {
+            var r = Radius(n) * Math.Sqrt(scale);
+            dc.DrawEllipse(brushes.GetValueOrDefault(n.kind, brushes["note"]), n == hover ? Ring : null, ToScreen(n), r, r);
+        }
+        // Labels: the hovered and best-connected notes first; a label that would overlap one already drawn is skipped.
+        var taken = new List<Rect>();
+        foreach (var n in nodes.OrderByDescending(n => n == hover).ThenByDescending(n => n.kind == "memory").ThenByDescending(n => n.deg))
+        {
+            if (n != hover && n.kind is "missing" or "system" && scale < 1.6) continue;
             var p = ToScreen(n);
             var r = Radius(n) * Math.Sqrt(scale);
-            dc.DrawEllipse(brushes.GetValueOrDefault(n.kind, brushes["note"]), n == hover ? Ring : null, p, r, r);
-            var showLabel = n == hover || scale > 1.4 || n.deg >= 6 || n.kind == "memory" || nodes.Count < 25;
-            if (!showLabel) continue;
             var label = System.Text.RegularExpressions.Regex.Replace(n.label, @"^\S+ (?=(MEMORY|HISTORY|TODO|HYPOTHESES|QUESTIONS|IDENTITY|PATIENT FACTS)$)", "");
-            if (label.Length > 28 && n != hover) label = label[..27] + "…";
+            if (label.Length > 26 && n != hover) label = label[..25] + "…";
             var ft = new FormattedText(label, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face, n == hover ? 13 : 11.5, LabelBrush, dpi);
-            if (n == hover) dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(0xe6, 0xfa, 0xfc, 0xfa)), null,
-                new Rect(p.X - ft.Width / 2 - 6, p.Y + r + 1, ft.Width + 12, ft.Height + 4), 6, 6);
+            var box = new Rect(p.X - ft.Width / 2 - 3, p.Y + r + 2, ft.Width + 6, ft.Height + 2);
+            if (n != hover && taken.Any(t => t.IntersectsWith(box))) continue;
+            taken.Add(box);
+            if (n == hover) dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(0xe6, 0xfa, 0xfc, 0xfa)), null, box, 6, 6);
             dc.DrawText(ft, new Point(p.X - ft.Width / 2, p.Y + r + 3));
         }
     }
