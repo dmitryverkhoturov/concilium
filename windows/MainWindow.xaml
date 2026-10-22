@@ -33,7 +33,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Top: brand, people, map toggle, language. -->
+            <!-- Top: brand, people, map toggle. -->
             <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,138,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="4,0,24,0">
                     <Viewbox Width="30" Height="30" Margin="0,0,10,0">
@@ -46,7 +46,6 @@
                     <TextBlock Text="Concilium" FontFamily="{StaticResource Serif}" FontSize="21" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel x:Name="People" Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left" WindowChrome.IsHitTestVisibleInChrome="True"/>
-                <Button x:Name="LangBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Content="EN" Click="Lang_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
                 <Button x:Name="MapBtn" Style="{StaticResource Ghost}" DockPanel.Dock="Right" VerticalAlignment="Center" Click="Map_Click" WindowChrome.IsHitTestVisibleInChrome="True"/>
             </DockPanel>
 

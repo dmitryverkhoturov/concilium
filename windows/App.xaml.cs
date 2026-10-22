@@ -13,7 +13,9 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         Mark("startup");
-        single = new Mutex(true, "Concilium.Desktop.Single", out var first);
+        // Screenshot mode draws off-screen and must not wake the window the person has open.
+        var first = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
+        if (!first) single = new Mutex(true, "Concilium.Desktop.Single", out first);
         if (!first)
         {
             NativeMethods.FocusOther();

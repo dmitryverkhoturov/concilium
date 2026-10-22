@@ -11,7 +11,7 @@
     <Product>Concilium</Product>
     <Company>Dmitry Verkhoturov</Company>
     <TieredPGO>true</TieredPGO>
-    <SatelliteResourceLanguages>ru;en</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     Person? Cur => people.FirstOrDefault(p => p.id == pid);
     static Strings T => Strings.T;
 
-    record Ui(string lang = "ru", string pid = "", bool panel = true);
+    record Ui(string pid = "", bool panel = true);
     static string UiFile => Path.Combine(Paths.Data, "ui.json");
 
     public MainWindow()
@@ -37,7 +37,7 @@ public partial class MainWindow : Window
         try
         {
             var ui = JsonSerializer.Deserialize<Ui>(File.ReadAllText(UiFile));
-            if (ui != null) { Strings.Lang = ui.lang; pid = ui.pid; panelOpen = ui.panel; }
+            if (ui != null) { pid = ui.pid; panelOpen = ui.panel; }
         }
         catch { }
         idle.Tick += (_, _) => { idle.Stop(); EndConversation(); };
@@ -127,7 +127,7 @@ public partial class MainWindow : Window
 
     void SaveUi()
     {
-        try { File.WriteAllText(UiFile, JsonSerializer.Serialize(new Ui(Strings.Lang, pid, panelOpen))); } catch { }
+        try { File.WriteAllText(UiFile, JsonSerializer.Serialize(new Ui(pid, panelOpen))); } catch { }
     }
 
     void DrawPetals()
@@ -147,7 +147,6 @@ public partial class MainWindow : Window
 
     void ApplyI18n()
     {
-        LangBtn.Content = Strings.Lang == "ru" ? "EN" : "RU";
         MapBtn.Content = T.Map;
         TabMap.Content = T.Map;
         TabNote.Content = T.Note;
@@ -156,18 +155,6 @@ public partial class MainWindow : Window
         Placeholder.Text = T.Placeholder + T.ByVoice;
         RenderActions();
         RenderLegend();
-    }
-
-    void Lang_Click(object s, RoutedEventArgs e)
-    {
-        Strings.Lang = Strings.Lang == "ru" ? "en" : "ru";
-        SaveUi();
-        ApplyI18n();
-        RenderPeople();
-        if (!authed) RenderLogin();
-        else if (sid == null) RenderWelcome();
-        LoadSessions();
-        ShowMemory();
     }
 
     static Brush Brush(string key) => (Brush)Application.Current.Resources[key];

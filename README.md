@@ -1,4 +1,6 @@
-# Concilium
+<p align="center"><img src="docs/icon.svg" width="112" alt=""></p>
+
+<h1 align="center">Concilium</h1>
 
 A local health research agent for the whole family. You talk about what bothers you; it keeps a long-term memory of your facts, rival hypotheses and plan, researches before it suggests tests, and tells you the one best next step.
 
@@ -30,7 +32,7 @@ cd windows
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ../dist/Concilium
 ```
 
-The published folder holds `Concilium.exe`, the `concilium-markdown` template and `claude/claude.exe` (taken from `app/node_modules` of the Agent SDK). App data goes to `Concilium data` next to the exe; run from `bin/` it goes to `%APPDATA%\Concilium`. `CONCILIUM_SHOT=<png>` saves a picture of the window and quits (smoke test).
+The published folder holds `Concilium.exe`, the `concilium-markdown` template and `claude/claude.exe` (taken from `app/node_modules` of the Agent SDK). App data goes to `Concilium data` next to the exe; run from `bin/` it goes to `%APPDATA%\Concilium`. `CONCILIUM_SHOT=<png>` saves a picture of the window and quits (smoke test); it runs beside an open app window. The app speaks the Windows language (English if it has no strings for it); `CONCILIUM_LANG=en` overrides it.
 
 ## Run the older Electron app from source
 

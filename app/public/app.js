@@ -67,7 +67,7 @@ function applyI18n() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = T()[e.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-ph]').forEach((e) => { e.placeholder = T()[e.dataset.i18nPh]; });
-  $('#lang').textContent = lang === 'ru' ? 'EN' : 'RU';
+  $('#lang').textContent = lang === 'ru' ? 'English' : 'Русский';
   $('#send').title = T().send;
   $('#mic').title = lang === 'ru' ? 'Говорить голосом' : 'Speak';
   // The desktop app has no browser speech service; the system's own dictation works in any text field.

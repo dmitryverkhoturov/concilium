@@ -5,7 +5,10 @@ public record Action4(string skill, string icon, string title, string sub);
 
 public class Strings
 {
-    public static string Lang = "ru";
+    // No language switch on screen: the app speaks the Windows language, English if it has no strings for it.
+    // CONCILIUM_LANG=<code> overrides it (screenshots).
+    public static readonly string Lang = (Environment.GetEnvironmentVariable("CONCILIUM_LANG") is { Length: > 0 } l
+        ? l : System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName) == "ru" ? "ru" : "en";
     public static Strings T => Lang == "ru" ? Ru : En;
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
