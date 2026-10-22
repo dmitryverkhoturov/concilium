@@ -5,7 +5,8 @@
 <p align="center"><b>A health companion that follows one person through time.</b><br>
 You tell it what bothers you, in your own words. It remembers, thinks it over, and says the one next step worth taking.</p>
 
-<p align="center"><img src="docs/conversation.png" alt="Concilium: a person comes back three weeks later; the agent remembers her diagnosis, diet and infusion, and answers in plain words. On the right, the map of her notes."></p>
+<p align="center"><img src="docs/welcome.png" alt="Concilium start screen: four buttons and, on the right, the map of the person's notes"></p>
+<p align="center"><sub>Start screen. Four buttons show what it can do; on the right, the person's memory as a map: overview, facts, hypotheses, plans and one note per topic.</sub></p>
 
 Health problems are rarely solved in one visit. They unfold over months: a test here, a new symptom there, a treatment that half works. Doctors see a snapshot; chatbots forget you the moment the tab closes. Concilium keeps the whole story.
 
@@ -17,13 +18,16 @@ Health problems are rarely solved in one visit. They unfold over months: a test 
 
 It is not a doctor and does not replace one. It helps you understand what is going on and arrive at the doctor with the right questions.
 
+<p align="center"><img src="docs/first-talk.png" alt="First conversation: the agent reads the person's blood test and asks why the tablets are not working; on the right, a note on the leading hypothesis with its results"></p>
+<p align="center"><sub>First conversation. Before answering, it reads the blood test she shared and quotes it: anaemia, very low ferritin, raised liver enzymes. Instead of just "ask for infusions" it asks why six months of tablets did nothing. On the right, the note on the leading hypothesis, with the results it rests on.</sub></p>
+
 <table>
 <tr>
-<td width="50%"><img src="docs/welcome.png" alt="Start screen: four buttons and a map of the person's notes"></td>
+<td width="50%"><img src="docs/conversation.png" alt="Three weeks later: she reports the diet and the infusion; the agent remembers everything and answers in plain words"></td>
 <td width="50%"><img src="docs/next-step.png" alt="'What should I do next': one main step, why it helps, and when a blood test would be worth it"></td>
 </tr>
 <tr>
-<td>Four buttons show what it can do. On the right, the person's memory as a map: overview, facts, hypotheses, plans and one note per topic.</td>
+<td>Three weeks later. She writes that she is on the diet and had the infusion but is still tired. It remembers the whole story and explains what is normal and what is worth checking. A new topic appears on the map.</td>
 <td><i>What should I do next</i>: one step, why it helps, and when a test would actually change something.</td>
 </tr>
 </table>
