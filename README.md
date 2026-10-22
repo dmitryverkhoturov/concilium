@@ -35,6 +35,10 @@ It is not a doctor and does not replace one. It helps to understand the situatio
 
 The person in the screenshots is fictional, a simulated patient from [`eval/`](eval/), shown over two conversations three weeks apart.
 
+## Download
+
+Windows 10/11: [latest release](https://github.com/dmitryverkhoturov/concilium/releases/latest). Unzip `Concilium-…-win-x64.zip` anywhere and run `Concilium.exe`. On first start it asks you to sign in with a Claude account and installs Claude Code if it is not on the computer yet.
+
 ## Two ways to use it
 
 - **The app** — a window with a chat, four buttons and a map of the notes. File names and the terminal are never shown.
