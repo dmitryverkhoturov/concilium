@@ -1,4 +1,4 @@
-// Conversations are Claude Code's own: ~/.claude/projects/<folder>/<id>.jsonl.
+﻿// Conversations are Claude Code's own: ~/.claude/projects/<folder>/<id>.jsonl.
 // So the app sees conversations started in that folder from Claude Code, and the other way round.
 using System.IO;
 using System.Text.Json;
@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace Concilium;
 
 public record SessionInfo(string id, string title, long at);
-public record Msg(string role, string? text, string? skill = null);
+public record Msg(string role, string? text, string? skill = null, string[]? files = null);
 
 public static class Sessions
 {
@@ -46,6 +46,7 @@ public static class Sessions
     static SessionInfo? Read(string file, DateTime mtime)
     {
         string? custom = null, summary = null, first = null;
+        DateTimeOffset? last = null;
         foreach (var line in ReadLines(file))
         {
             try
@@ -53,6 +54,10 @@ public static class Sessions
                 using var doc = JsonDocument.Parse(line);
                 var r = doc.RootElement;
                 var type = Str(r, "type");
+                // The time of the last real message: resuming a conversation (switching to it, the app's
+                // background memory pass) appends service lines, so the file's own time says "just now".
+                if (type is "user" or "assistant" && !Bool(r, "isMeta") && !Bool(r, "isSidechain")
+                    && DateTimeOffset.TryParse(Str(r, "timestamp"), out var ts)) last = ts;
                 if (type == "custom-title") custom = Str(r, "customTitle") ?? custom;
                 else if (type == "summary") summary ??= Str(r, "summary");
                 else if (type == "user" && first == null && !Bool(r, "isMeta") && !Bool(r, "isSidechain"))
@@ -66,7 +71,7 @@ public static class Sessions
         if (first == null) return null;
         // Background memory passes of the old app were stored as conversations; they are not the person's talks.
         if (first.Contains("Conversations to consolidate")) return null;
-        var at = new DateTimeOffset(mtime).ToUnixTimeMilliseconds();
+        var at = (last ?? new DateTimeOffset(mtime)).ToUnixTimeMilliseconds();
         return new(Path.GetFileNameWithoutExtension(file), custom ?? summary ?? first, at);
     }
 
@@ -113,7 +118,8 @@ public static class Sessions
         if (Regex.IsMatch(t, "^<(local-command|command-message|command-args)")) return null;
         m = Regex.Match(t, @"^/(?:concilium:)([\w-]+)\s*(.*)$", RegexOptions.Singleline);
         if (m.Success) return new("user", null, m.Groups[1].Value);
-        return new("user", t);
+        var (text, files) = Documents.Split(t);
+        return text.Length == 0 && files.Length == 0 ? null : new("user", text, null, files);
     }
 
     static string? UserText(JsonElement r)

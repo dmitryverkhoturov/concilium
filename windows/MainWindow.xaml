@@ -5,7 +5,8 @@
         Title="Concilium" Width="1400" Height="900" MinWidth="900" MinHeight="600"
         Icon="icon.ico" Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen"
         FontFamily="{StaticResource Sans}" Foreground="{StaticResource Text}" FontSize="15"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        AllowDrop="True" PreviewDragOver="Window_DragOver" PreviewDrop="Window_Drop">
     <!-- No system title bar: the app's own header is the caption (drag, double-click, snap all work). -->
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False"/>
@@ -79,18 +80,26 @@
                     </ScrollViewer>
                     <StackPanel Grid.Row="1" MaxWidth="836">
                         <WrapPanel x:Name="Actions" Margin="0,8,0,0"/>
-                        <Border Style="{StaticResource Panel}" Background="{StaticResource GlassStrong}" CornerRadius="22" Padding="16,6,6,6">
+                        <WrapPanel x:Name="Attached" Visibility="Collapsed"/>
+                        <Border Style="{StaticResource Panel}" Background="{StaticResource GlassStrong}" CornerRadius="22" Padding="6,6,6,6">
                             <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="Placeholder" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,0,0"
+                                <Button x:Name="AttachBtn" Style="{StaticResource Ghost}" Width="42" Height="42" Padding="0" Tag="21"
+                                        VerticalAlignment="Bottom" Margin="0,0,4,0" Click="Attach_Click">
+                                    <Path Data="M16.5,6.5 L8.6,14.4 A2,2 0 0 0 11.4,17.2 L19,9.6 A4,4 0 0 0 13.3,3.9 L5.6,11.6 A6,6 0 0 0 14.1,20.1 L20,14.2"
+                                          Stroke="{StaticResource Accent}" StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          Width="22" Height="22" Stretch="Uniform"/>
+                                </Button>
+                                <TextBlock x:Name="Placeholder" Grid.Column="1" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="2,0,0,0"
                                            IsHitTestVisible="False" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                <TextBox x:Name="Input" BorderThickness="0" Background="Transparent" AcceptsReturn="True" TextWrapping="Wrap"
+                                <TextBox x:Name="Input" Grid.Column="1" BorderThickness="0" Background="Transparent" AcceptsReturn="True" TextWrapping="Wrap"
                                          VerticalAlignment="Center" MaxHeight="220" VerticalScrollBarVisibility="Auto" FontSize="15.5" Padding="0,6"
                                          CaretBrush="{StaticResource Accent}" PreviewKeyDown="Input_KeyDown" TextChanged="Input_TextChanged"/>
-                                <Button x:Name="SendBtn" Grid.Column="1" Style="{StaticResource Primary}" Width="42" Height="42" Padding="0" Tag="21"
+                                <Button x:Name="SendBtn" Grid.Column="2" Style="{StaticResource Primary}" Width="42" Height="42" Padding="0" Tag="21"
                                         VerticalAlignment="Bottom" Margin="8,0,0,0" Click="Send_Click">
                                     <Grid>
                                         <Path x:Name="SendIcon" Data="M12,19 V5 M6,11 L12,5 L18,11" Stroke="{StaticResource Ink}" StrokeThickness="2.2"

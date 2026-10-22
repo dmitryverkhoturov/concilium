@@ -18,7 +18,7 @@
 - A topic whose name no longer describes its content is the wrong home: a direction that grew into another subject gets a new topic; the old one keeps its scope and links to the new one.
 - When facts of one body area grow large, they move to a facts topic (e.g. `topics/facts — sleep and breathing.md`); [[PATIENT FACTS]] becomes a hub with the summary and links.
 - Open questions to the person or a doctor live in [[TODO]] under **Questions**, each with which hypotheses it separates. What changed and why — in [[HISTORY]]. Answered questions leave; the answer goes to the facts.
-- Documents (lab results, discharge notes, photos) are kept as they are in `documents/`, named `YYYY-MM-DD what.ext`. They are never edited or deleted; their facts are copied into memory with a link to the file.
+- Documents (lab results, discharge notes, photos) are kept as they are in `documents/`, named `YYYY-MM-DD what.ext` — the date of the document itself, read from its content, never the file's date (a download is dated the day it was downloaded). A document already there under another name (downloaded again) is not kept twice. They are never edited or deleted; their facts are copied into memory with a link to the file by its full name with the extension, e.g. [[2026-09-12 blood test.pdf]] — otherwise the document hangs loose on the map.
 - Human notes (anything that is not a memory file or a topic) are not edited without a request.
 - Link files with Obsidian wikilinks — the file name without `.md` in double square brackets — inside the sentence. The person sees memory as a map drawn from these links: every file is linked from somewhere, and a memory file is never named without a link.
 

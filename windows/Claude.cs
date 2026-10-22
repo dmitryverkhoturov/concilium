@@ -1,4 +1,4 @@
-// Talks to Claude Code directly: its binary in stream-json mode, no Node, no local server.
+﻿// Talks to Claude Code directly: its binary in stream-json mode, no Node, no local server.
 // One live process per open conversation. It is started ahead of time (Claude takes ~10 s to boot),
 // so by the time the person has typed, it is ready; follow-up messages go to the same process.
 using System.Diagnostics;
@@ -27,18 +27,17 @@ public class ClaudeProcess : IDisposable
     readonly Process proc;
     readonly StringBuilder stderr = new();
 
-    static readonly string[] ReadTools = { "Read", "Glob", "Grep", "WebSearch", "WebFetch", "Skill", "Task", "Agent", "TodoWrite", "ToolSearch" };
+    static readonly string[] ReadTools = { "Read", "Glob", "Grep", "WebSearch", "WebFetch", "Skill", "Task", "Agent", "TodoWrite", "ToolSearch", "Bash", "PowerShell" };
 
     public static List<string> Args(Person p, string? resume, bool persist = true, bool interactive = true)
     {
         var a = new List<string> { "-p", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose" };
         if (interactive) a.Add("--include-partial-messages");
-        // Reads and web research are free. Edits are accepted inside the person's folder (the working directory);
-        // anything else would need a permission prompt, and in this mode that means "no". No terminal, ever.
+        // The agent does whatever the work needs in the person's folder: reads, edits, the terminal (rename, move, convert files).
+        // Edits outside the folder would need a permission prompt, and in this mode that means "no".
         // Only the folder's own settings (and its CLAUDE.md): global allow rules of a Claude Code user would override all this.
         a.AddRange(new[] { "--setting-sources=project", "--permission-mode", "acceptEdits",
             "--allowedTools", string.Join(",", ReadTools),
-            "--disallowedTools", "Bash,PowerShell,NotebookEdit,KillShell",
             "--plugin-dir", Paths.Plugin,
             "--append-system-prompt-file", Paths.PrinciplesFile });
         if (!persist) a.Add("--no-session-persistence");

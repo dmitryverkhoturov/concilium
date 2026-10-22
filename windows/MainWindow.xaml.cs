@@ -76,6 +76,9 @@ public partial class MainWindow : Window
             {
                 Paths.LogError($"[shot] window shown {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms after start");
                 await Task.Delay(int.TryParse(Environment.GetEnvironmentVariable("CONCILIUM_SHOT_DELAY"), out var d) ? d : 1500);
+                // CONCILIUM_SHOT_ATTACH=<file;file>: attach files before sending (or just to show them).
+                if (Environment.GetEnvironmentVariable("CONCILIUM_SHOT_ATTACH") is { Length: > 0 } att)
+                    AddAttachments(att.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
                 // CONCILIUM_SHOT_SEND=<text>: also send a message (or /skill) and wait for the answer first.
                 if (Environment.GetEnvironmentVariable("CONCILIUM_SHOT_SEND") is { Length: > 0 } say)
                 {
@@ -157,6 +160,7 @@ public partial class MainWindow : Window
         NewChatBtn.Content = IconText("M12,5 V19 M5,12 H19", T.NewChat, Brush("Ink"));
         ChatsTitle.Text = T.Chats.ToUpperInvariant();
         Placeholder.Text = T.Placeholder + T.ByVoice;
+        AttachBtn.ToolTip = T.Attach;
         RenderActions();
         RenderLegend();
     }
@@ -297,8 +301,9 @@ public partial class MainWindow : Window
     {
         var m = Regex.Match(t, @"(?:concilium|health-agent):([\w-]+)");
         if (m.Success && T.Actions.FirstOrDefault(a => a.skill == m.Groups[1].Value) is { } a) return a.title;
-        t = Regex.Replace(t, "<[^>]+>", "").Trim();
-        return t.Length > 0 ? t : "…";
+        var (text, files) = Documents.Split(t);
+        t = Regex.Replace(text, "<[^>]+>", "").Trim();
+        return t.Length > 0 ? t : files.Length > 0 ? Path.GetFileName(files[0]) : "…";
     }
 
     async void OpenSession(string id)
@@ -512,7 +517,7 @@ public partial class MainWindow : Window
     void AddMsg(Msg m)
     {
         if (m.skill != null) AddSkill(m.skill);
-        else if (m.role == "user") AddUser(m.text ?? "");
+        else if (m.role == "user") AddUser(m.text ?? "", m.files);
         else AddAssistant(m.text ?? "");
     }
 
@@ -522,9 +527,21 @@ public partial class MainWindow : Window
         foreach (var c in Messages.Children.OfType<FrameworkElement>().Where(c => c.Tag is "welcome").ToList()) Messages.Children.Remove(c);
     }
 
-    void AddUser(string text)
+    void AddUser(string text, string[]? files = null)
     {
         RemoveWelcome();
+        if (files is { Length: > 0 })
+        {
+            var w = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(60, 10, 0, text.Length > 0 ? -4 : 2) };
+            foreach (var f in files)
+            {
+                var b = new Button { Content = IconText(IDoc, Path.GetFileName(f), Brush("Accent"), 15), Style = (Style)FindResource("Chip"), ToolTip = T.OpenFile };
+                b.Click += (_, _) => OpenNote(f);
+                w.Children.Add(b);
+            }
+            Messages.Children.Add(w);
+        }
+        if (text.Length == 0) return;
         var tb = new TextBox { Text = text, IsReadOnly = true, BorderThickness = new Thickness(0), Background = Brushes.Transparent, Foreground = Brush("Ink"),
             TextWrapping = TextWrapping.Wrap, FontSize = 15.5, Padding = new Thickness(0), SelectionBrush = Brush("AccentHi") };
         Messages.Children.Add(new Border { Child = tb, Background = Brush("Accent"), CornerRadius = new CornerRadius(18, 18, 6, 18), Padding = new Thickness(16, 10, 16, 10),
@@ -626,9 +643,16 @@ public partial class MainWindow : Window
     {
         if (streaming || Cur is not { } p || !authed) return;
         text = (text ?? "").Trim();
-        if (text.Length == 0 && skill == null) return;
+        if (text.Length == 0 && skill == null && attached.Count == 0) return;
+        string[] files;
+        try { files = attached.Select(f => Documents.Keep(p, f)).ToArray(); }
+        catch (Exception e) { Paths.LogError(e); AddError(T.Failed + e.Message); return; }
+        attached.Clear();
+        RenderAttached();
         var prompt = skill != null ? $"/concilium:{skill}{(text.Length > 0 ? " " + text : "")}" : text;
-        if (skill != null) AddSkill(skill); else AddUser(text);
+        if (files.Length > 0) prompt += Documents.Note(files);
+        if (skill != null) { AddSkill(skill); if (files.Length > 0) AddUser("", files); }
+        else AddUser(text, files);
         Input.Text = "";
         var work = new StackPanel { Margin = new Thickness(0, 6, 0, 6) };
         work.Children.Add(Pulse(T.Thinking));
@@ -753,6 +777,75 @@ public partial class MainWindow : Window
             e.Handled = true;
             if (!streaming) Send(Input.Text, null);
         }
+        // Ctrl+V with files or a picture (a screenshot, a photo from the phone app) attaches it; text pastes as usual.
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            try
+            {
+                if (Clipboard.ContainsFileDropList()) { AddAttachments(Clipboard.GetFileDropList().Cast<string>()); e.Handled = true; }
+                else if (Clipboard.ContainsImage() && Clipboard.GetImage() is { } img)
+                {
+                    var dir = Path.Combine(Path.GetTempPath(), "Concilium");
+                    Directory.CreateDirectory(dir);
+                    var file = Path.Combine(dir, $"{T.Picture} {DateTime.Now:HH-mm-ss}.png");
+                    var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(img));
+                    using (var fs = File.Create(file)) enc.Save(fs);
+                    AddAttachments(new[] { file });
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex) { Paths.LogError(ex); }
+        }
+    }
+
+    // ---------- documents ----------
+
+    const string IDoc = "M7,3 H14 L19,8 V21 H7 Z M14,3 V8 H19";
+    readonly List<string> attached = new();
+
+    void Attach_Click(object s, RoutedEventArgs e)
+    {
+        // The system file picker is the one window allowed besides the folder picker: there is no other way to reach a file.
+        var d = new Microsoft.Win32.OpenFileDialog { Multiselect = true, Title = T.Attach };
+        if (d.ShowDialog(this) == true) AddAttachments(d.FileNames);
+    }
+
+    void AddAttachments(IEnumerable<string> files)
+    {
+        if (Cur == null || !authed) return;
+        foreach (var f in files) if (File.Exists(f) && !attached.Contains(f)) attached.Add(f);
+        RenderAttached();
+        Input.Focus();
+    }
+
+    void RenderAttached()
+    {
+        Attached.Children.Clear();
+        foreach (var f in attached.ToList())
+        {
+            var sp = IconText(IDoc, Path.GetFileName(f), Brush("Accent"), 15);
+            sp.Children.Add(new TextBlock { Text = "×", FontSize = 15, Margin = new Thickness(10, -1, 0, 0), Foreground = Brush("Muted"), VerticalAlignment = VerticalAlignment.Center });
+            var b = new Button { Content = sp, Style = (Style)FindResource("Chip"), ToolTip = T.Remove };
+            b.Click += (_, _) => { attached.Remove(f); RenderAttached(); };
+            Attached.Children.Add(b);
+        }
+        Attached.Visibility = attached.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        Attached.Margin = new Thickness(0, Actions.Visibility == Visibility.Visible ? 0 : 8, 0, 0);
+    }
+
+    void Window_DragOver(object s, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        e.Effects = Cur != null && authed ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    void Window_Drop(object s, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+        e.Handled = true;
+        AddAttachments(files);
     }
 
     void Input_TextChanged(object s, TextChangedEventArgs e) =>
