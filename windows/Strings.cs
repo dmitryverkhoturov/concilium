@@ -13,7 +13,7 @@ public class Strings
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
         Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, Stopped, Failed, NeedsLogin, MemBtn, Starting, ByVoice, OpenFile,
-        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, NameRequired, FolderMissing;
+        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, Installing, InstallFailed, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
     public required Action4[] Actions;
@@ -40,6 +40,7 @@ public class Strings
         LoginText = "Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.",
         LoginBtn = "Войти через Claude", LoginWaiting = "Жду подтверждения на странице Claude…", LoginAgain = "Открыть страницу ещё раз",
         LoginCode = "Если страница показала код — вставьте его сюда:", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти. Попробуйте ещё раз.",
+        Installing = "Устанавливаю помощника Claude. Это займёт минуту-две…", InstallFailed = "Не получилось установить помощника. Проверьте интернет и нажмите ещё раз.",
         NameRequired = "Напишите имя.", FolderMissing = "Такой папки нет.",
         Ago = m => m < 1 ? "только что" : m < 60 ? $"{m} мин назад" : m < 1440 ? $"{Math.Round(m / 60.0)} ч назад" : $"{Math.Round(m / 1440.0)} дн назад",
         Actions = new Action4[]
@@ -72,6 +73,7 @@ public class Strings
         LoginText = "Press the button — a Claude page will open. Sign in to your account and press \"Authorize\". Then come back to this window.",
         LoginBtn = "Sign in with Claude", LoginWaiting = "Waiting for confirmation on the Claude page…", LoginAgain = "Open the page again",
         LoginCode = "If the page shows a code, paste it here:", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed. Please try again.",
+        Installing = "Installing the Claude assistant. This takes a minute or two…", InstallFailed = "Could not install the assistant. Check the internet connection and press again.",
         NameRequired = "Please enter a name.", FolderMissing = "That folder does not exist.",
         Ago = m => m < 1 ? "just now" : m < 60 ? $"{m} min ago" : m < 1440 ? $"{Math.Round(m / 60.0)} h ago" : $"{Math.Round(m / 1440.0)} d ago",
         Actions = new Action4[]

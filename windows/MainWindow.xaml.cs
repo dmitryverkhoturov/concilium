@@ -120,7 +120,7 @@ public partial class MainWindow : Window
         App.Mark("prepared");
         SetPanel(panelOpen);
         ApplyI18n();
-        authed = Auth.LoggedIn();
+        authed = Paths.HasClaude && Auth.LoggedIn();
         people = Store.People();
         if (Cur == null) pid = people.FirstOrDefault()?.id ?? "";
         RenderPeople();
@@ -406,13 +406,33 @@ public partial class MainWindow : Window
 
         var startedAt = DateTime.Now;
         void ShowPending() { btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now; }
-        btn.Click += (_, _) => { Auth.Start(); ShowPending(); authPoll.Start(); };
+        // One button: if Claude Code is not on this computer yet, it is installed first, then sign-in starts by itself.
+        void Begin()
+        {
+            ShowPending();
+            if (Paths.HasClaude) { wait.Text = T.LoginWaiting; Auth.Start(); }
+            else { wait.Text = T.Installing; Installer.Start(); }
+            authPoll.Start();
+        }
+        btn.Click += (_, _) => Begin();
         authPoll.Tick -= AuthTick;
         authPoll.Tick += AuthTick;
-        if (Auth.Pending) { ShowPending(); authPoll.Start(); }
+        if (Installer.Pending) { ShowPending(); wait.Text = T.Installing; authPoll.Start(); }
+        else if (Auth.Pending) { ShowPending(); authPoll.Start(); }
 
         void AuthTick(object? s, EventArgs e)
         {
+            if (Installer.Pending) return;
+            if (!Paths.HasClaude)
+            {
+                authPoll.Stop();
+                err.Text = T.InstallFailed;
+                btn.Visibility = Visibility.Visible;
+                pending.Visibility = Visibility.Collapsed;
+                return;
+            }
+            // Just installed: go on to sign-in.
+            if (!Auth.Pending && !Auth.LoggedIn() && !Auth.Failed) { wait.Text = T.LoginWaiting; startedAt = DateTime.Now; Auth.Start(); return; }
             if (Auth.LoggedIn())
             {
                 authPoll.Stop();

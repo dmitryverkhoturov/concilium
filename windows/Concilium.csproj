@@ -22,13 +22,10 @@
     <Resource Include="icon.ico" />
   </ItemGroup>
 
-  <!-- Published next to the exe: the folder template (skills, principles) and the Claude Code binary. -->
-  <PropertyGroup>
-    <ClaudeExe>..\app\node_modules\@anthropic-ai\claude-agent-sdk-win32-x64\claude.exe</ClaudeExe>
-  </PropertyGroup>
+  <!-- Published next to the exe: the folder template (skills, principles). Claude Code is not shipped: the app uses
+       the one installed on the computer, or installs it with Anthropic's own installer. -->
   <ItemGroup>
     <None Include="..\concilium-markdown\**\*" LinkBase="concilium-markdown" CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
-    <None Include="$(ClaudeExe)" Link="claude\claude.exe" CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" Condition="Exists('$(ClaudeExe)')" />
   </ItemGroup>
 
 </Project>

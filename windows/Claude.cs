@@ -169,6 +169,24 @@ public class ClaudeProcess : IDisposable
     }
 }
 
+// Installing Claude Code without a terminal: Anthropic's official Windows installer, run hidden.
+// It puts claude.exe into ~/.local/bin, where Paths.Claude looks first.
+public static class Installer
+{
+    static Process? run;
+    public static bool Pending => run is { HasExited: false };
+    public static bool Failed => run is { HasExited: true } && !Paths.HasClaude;
+
+    public static void Start()
+    {
+        if (Pending) return;
+        var psi = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };
+        foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm https://claude.ai/install.ps1 | iex" }) psi.ArgumentList.Add(a);
+        ClaudeProcess.CleanEnv(psi.Environment);
+        try { run = Process.Start(psi); } catch (Exception e) { Paths.LogError(e); }
+    }
+}
+
 // Signing in without a terminal: Claude's own sign-in opens the browser, the person presses "Authorize".
 public static class Auth
 {

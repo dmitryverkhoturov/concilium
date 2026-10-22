@@ -26,12 +26,20 @@ public static class Paths
     public static string PrinciplesFile => Path.Combine(Data, "principles.md");
     public static string Log => Path.Combine(Data, "concilium.log");
 
-    // The Claude Code binary: shipped in `claude\` next to the exe; from a source checkout, the one the Agent SDK installed.
-    public static readonly string Claude = new[]
+    // Claude Code is not shipped with the app: it is Anthropic's program, installed by Anthropic's own installer
+    // (see Installer) into ~/.local/bin. Looked up on every use, because it may get installed while the app runs.
+    // From a source checkout, the binary the Agent SDK installed also works.
+    public static string Claude => new[]
     {
-        Path.Combine(ExeDir, "claude", "claude.exe"),
+        Environment.GetEnvironmentVariable("CONCILIUM_CLAUDE"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "claude.exe"),
+        OnPath("claude.exe"),
+        // Installed with npm: claude.cmd on PATH runs the binary inside the package.
+        OnPath("claude.cmd") is { } cmd ? Path.Combine(Path.GetDirectoryName(cmd)!, "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe") : null,
         FindUp(Path.Combine("app", "node_modules", "@anthropic-ai", "claude-agent-sdk-win32-x64", "claude.exe")),
-    }.FirstOrDefault(File.Exists) ?? OnPath("claude.exe") ?? "claude.exe";
+    }.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p)) ?? "";
+
+    public static bool HasClaude => Claude.Length > 0;
 
     public static string ClaudeConfigDir => Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR") is { Length: > 0 } c ? c
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
