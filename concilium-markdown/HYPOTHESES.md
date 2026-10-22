@@ -6,7 +6,7 @@
      - Explains: …  Does not explain: …
      - For: … (fact, date). Against: … (fact, date).
      - Next: one line.
-     - Topic: [[topics/…]]
+     - Topic: a wikilink to the hypothesis's topic in topics/.
 -->
 
 ## Integral model

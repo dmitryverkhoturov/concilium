@@ -19,10 +19,10 @@ Sleep is not a filing step. It integrates what the conversation brought into wha
 - **`MEMORY` is the gate.** The person's goal at the top, how the agent works here, the current picture (complaints, working model, plan), a map of topics. Narrow topics are reached through their hub.
 - **`PATIENT FACTS` holds facts only** — what the person said or a document shows, each with a date and a source ("said 2026-10-08", "blood test 12.09.25"). A guess is never a fact.
 - **`HYPOTHESES` is a short registry** — per hypothesis the claim, probability, key for/against, one-line next step, a link to its topic. Details live in the topic.
-- **One topic, one entity.** A hypothesis, a working model, one body area's facts, a doctor, a treatment trial. The file holds its current state: facts, mechanism, sources, rivals, next step. How the state was reached takes one or two lines.
+- **One topic, one entity.** A hypothesis, a working model, one body area's facts, a doctor, a treatment trial. A confirmed diagnosis and its treatment are two entities: the treatment (a diet, a medicine, a course of infusions) gets its own topic once it starts. The file holds its current state: facts, mechanism, sources, rivals, next step. How the state was reached takes one or two lines.
 - **The leading hypothesis always has its own topic**, named after what it claims. So does every hypothesis or model the conversation spent real time on.
 - **Files stay within budget.** In characters: `MEMORY` 20,000 · `TODO` 8,000 · `HISTORY` 15,000 · topic 15,000. Documents and verbatim sources live in their own files with no budget; memory holds the digest and a link.
-- **Links are few and purposeful**, Obsidian wikilinks `[[name]]`. A link exists where a task will need to follow it.
+- **Memory is one connected web.** The person sees it as a map drawn from Obsidian wikilinks, so a file nobody links to is lost, and a memory file named in plain text or `code` is a missed link. Each `HYPOTHESES` entry links its topic; each topic links its hub, the facts it rests on (`PATIENT FACTS` or a facts topic), its rivals and the documents behind its numbers; each `TODO` step and question links the topic it tests; each `HISTORY` line links the topic it changed; `MEMORY` links every memory file and every open topic. Links sit inside the sentence ("the rash is in [[facts — skin]]"), not as a list of "see also" tails. No link to a file that does not exist.
 - **One fact, one place** — the most specific node where a task needs it. Others link to it.
 - **Memory is what the person said and decided.** Their corrections in their meaning; your conclusions marked as hypotheses; no filler.
 
@@ -63,7 +63,7 @@ A toolbox, not a checklist: compare memory with the picture above and apply what
 3. **Integrate** each item to its place (above). Compact every touched file.
 4. **Topic check.** List every hypothesis, model or subject the conversation spent real time on. For each: which topic holds it, and does its name say what it is? No topic or a name that does not fit → create one now. Is the leading hypothesis in `HYPOTHESES` a short entry with a link, or a wall of detail? Move the detail into its topic.
 5. **Re-rank `TODO`** against the goal in `MEMORY`: remove done and outdated items (important ones go to `HISTORY` in a line), at most five in **Next**, each with why.
-6. **Check.** Old wording of corrected facts is gone. Links to created, merged and renamed topics resolve. Files are within budget. A new conversation reading only `MEMORY` and one topic can continue without asking the person.
+6. **Check.** Old wording of corrected facts is gone. Every memory file and topic is linked from at least one other and links onward as described above; every link resolves to an existing file. Files are within budget. A new conversation reading only `MEMORY` and one topic can continue without asking the person.
 
 Sleep is not interactive: never ask or wait. When unclear, choose the reasonable option, mark it "assumed", and add it to **Questions** in `TODO`.
 

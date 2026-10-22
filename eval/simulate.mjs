@@ -1,12 +1,16 @@
 // Simulated patient: one agent plays a person with a hidden diagnosis, Concilium (the markdown edition,
 // run exactly as a user would run it in Claude Code) tries to find it. Like SDBench for MAI-DxO, but
-// sequential and with long-term memory. Usage: node eval/simulate.mjs <case> [maxTurns]
+// sequential and with long-term memory. Usage: node eval/simulate.mjs <case> [maxTurns] [--schedule open,free,/sleep] [--out <folder>]
+// --out puts the person's folder there instead of eval/runs (e.g. a demo folder the app opens).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { query } from '../app/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const flag = (name) => { const i = process.argv.indexOf(name); if (i < 0) return null; const v = process.argv[i + 1]; process.argv.splice(i, 2); return v; };
+const scheduleArg = flag('--schedule');
+const outArg = flag('--out');
 const caseId = process.argv[2] || 'iron-man';
 const CASE = path.join(HERE, 'cases', caseId);
 const caseText = fs.readFileSync(path.join(CASE, 'case.md'), 'utf8');
@@ -15,7 +19,7 @@ const patientBrief = caseText.replace(/## Truth[\s\S]*?(?=\n## )/, '');
 
 const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 const RUN = path.join(HERE, 'runs', `${caseId}-${stamp}`);
-const FOLDER = path.join(RUN, caseText.match(/## Persona\s+(\w+)/)?.[1] || 'Person');
+const FOLDER = path.join(outArg ? path.resolve(outArg) : RUN, caseText.match(/## Persona\s+(\w+)/)?.[1] || 'Person');
 fs.cpSync(path.join(HERE, '..', 'concilium-markdown'), FOLDER, { recursive: true });
 fs.rmSync(path.join(FOLDER, 'README.md'));
 if (fs.existsSync(path.join(CASE, 'documents'))) fs.cpSync(path.join(CASE, 'documents'), path.join(FOLDER, 'documents'), { recursive: true });
@@ -25,7 +29,8 @@ const env = Object.fromEntries(Object.entries(process.env).filter(([k]) =>
 const log = (s) => { fs.appendFileSync(path.join(RUN, 'transcript.md'), s + '\n\n'); console.log(s.slice(0, 300)); };
 
 // The person's turns. Free turns are written by the patient agent; slash commands are the buttons.
-const SCHEDULE = ['open', 'free', 'free', '/ask-questions', 'free', '/research', 'free', '/next-step', 'free', 'free', '/next-step', 'free', '/sleep'];
+const SCHEDULE = scheduleArg ? scheduleArg.split(',')
+  : ['open', 'free', 'free', '/ask-questions', 'free', '/research', 'free', '/next-step', 'free', 'free', '/next-step', 'free', '/sleep'];
 const maxTurns = Number(process.argv[3] || SCHEDULE.length);
 
 const inside = (f) => { const r = path.relative(FOLDER, path.resolve(FOLDER, f)); return r && !r.startsWith('..') && !path.isAbsolute(r); };

@@ -87,14 +87,14 @@ public class GraphView : FrameworkElement
                 var d2 = dx * dx + dy * dy;
                 if (d2 < 0.01) { dx = 0.1 * (i - j); dy = 0.1; d2 = 0.02; }
                 if (d2 > 250000) continue;
-                var f = 140 * alpha / d2;
+                var f = 700 * alpha / d2;
                 a.vx -= dx * f; a.vy -= dy * f; b.vx += dx * f; b.vy += dy * f;
             }
         foreach (var (s, t, w) in links)
         {
             var dx = t.x - s.x; var dy = t.y - s.y;
             var d = Math.Max(Math.Sqrt(dx * dx + dy * dy), 0.1);
-            var f = (d - 45) / d * 0.06 * alpha * Math.Min(2, 1 + Math.Log(w));
+            var f = (d - 80) / d * 0.06 * alpha * Math.Min(2, 1 + Math.Log(w));
             s.vx += dx * f; s.vy += dy * f; t.vx -= dx * f; t.vy -= dy * f;
         }
         foreach (var v in nodes)
@@ -111,7 +111,8 @@ public class GraphView : FrameworkElement
     {
         if (nodes.Count == 0 || ActualWidth < 10) return;
         double x0 = nodes.Min(n => n.x), x1 = nodes.Max(n => n.x), y0 = nodes.Min(n => n.y), y1 = nodes.Max(n => n.y);
-        var w = Math.Max(x1 - x0, 60) + 80; var h = Math.Max(y1 - y0, 60) + 80;
+        // Room for labels: they hang below a node and spread to both sides.
+        var w = Math.Max(x1 - x0, 60) + 180; var h = Math.Max(y1 - y0, 60) + 90;
         scale = Math.Clamp(Math.Min(ActualWidth / w, ActualHeight / h), 0.3, 2.5);
         ox = ActualWidth / 2 - (x0 + x1) / 2 * scale;
         oy = ActualHeight / 2 - (y0 + y1) / 2 * scale;

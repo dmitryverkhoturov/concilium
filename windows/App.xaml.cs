@@ -4,7 +4,7 @@ namespace Concilium;
 
 public partial class App : Application
 {
-    // One window per computer: a second launch brings the first one forward.
+    // A second launch brings the first one forward.
     static Mutex? single;
 
     public static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
@@ -15,7 +15,9 @@ public partial class App : Application
         Mark("startup");
         // Screenshot mode draws off-screen and must not wake the window the person has open.
         var first = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
-        if (!first) single = new Mutex(true, "Concilium.Desktop.Single", out first);
+        // One window per data folder, so a second copy with its own people (a demo) can run beside it.
+        var key = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(Paths.Data.ToLowerInvariant())))[..12];
+        if (!first) single = new Mutex(true, "Concilium.Desktop.Single." + key, out first);
         if (!first)
         {
             NativeMethods.FocusOther();

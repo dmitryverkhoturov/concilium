@@ -105,6 +105,8 @@ public static class NoteGraph
             string txt;
             try { txt = File.ReadAllText(Path.Combine(p.path, f)); } catch { continue; }
             if (Regex.IsMatch(txt, "^excalidraw-plugin:", RegexOptions.Multiline)) { nodes[f].kind = "system"; continue; }
+            // Like Obsidian: a [[link]] inside code is an example, not a link.
+            txt = Regex.Replace(txt, @"```[\s\S]*?```|`[^`\n]*`", "");
             foreach (Match m in Wiki.Matches(txt))
             {
                 var name = m.Groups[1].Value.Trim();
@@ -122,7 +124,11 @@ public static class NoteGraph
                 links[lk] = links.GetValueOrDefault(lk) + 1;
             }
         }
-        var ll = links.Select(kv => { var s = kv.Key.Split('→'); return new GLink(s[0], s[1], kv.Value); }).ToList();
+        // The agent's own files (AGENTS, PRINCIPLES…) are plumbing, not the person's notes: not on the map.
+        var shown = nodes.Values.Where(n => n.kind != "system").ToDictionary(n => n.id);
+        var ll = links.Select(kv => { var s = kv.Key.Split('→'); return new GLink(s[0], s[1], kv.Value); })
+            .Where(l => shown.ContainsKey(l.source) && shown.ContainsKey(l.target)).ToList();
+        nodes = shown;
         foreach (var l in ll) { nodes[l.source].deg += l.weight; nodes[l.target].deg += l.weight; }
         return new(nodes.Values.ToList(), ll);
     }
