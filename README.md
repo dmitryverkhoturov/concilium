@@ -2,24 +2,25 @@
 
 <h1 align="center">Concilium</h1>
 
-<p align="center"><b>A health companion that follows one person through time.</b><br>
-You tell it what bothers you, in your own words. It remembers, thinks it over, and says the one next step worth taking.</p>
+<p align="center">A health agent that keeps a long-term record of one person's health and helps decide what to do next.</p>
 
-<p align="center"><img src="docs/welcome.png" alt="Concilium start screen: four buttons and, on the right, the map of the person's notes"></p>
-<p align="center"><sub>Start screen. Four buttons show what it can do; on the right, the person's memory as a map: overview, facts, hypotheses, plans and one note per topic.</sub></p>
+<p align="center"><img src="docs/welcome.png" alt="Concilium start screen: four actions and the map of the person's notes"></p>
+<p align="center"><sub>Start screen: four actions, conversations on the left, the person's notes as a map on the right.</sub></p>
 
-Health problems are rarely solved in one visit. They unfold over months: a test here, a new symptom there, a treatment that half works. Doctors see a snapshot; chatbots forget you the moment the tab closes. Concilium keeps the whole story.
+Concilium is a desktop app for following a health problem over weeks and months. You describe what is going on in your own words. It records the facts, keeps several possible explanations with the evidence for and against each, and suggests one next step. In a later conversation it continues from what it already knows.
 
-- **It remembers.** Every conversation is filed into a long-term memory: facts with dates and sources, results with numbers, what was tried and how it went. Come back in three weeks and it picks up where you left off.
-- **It keeps rival explanations.** Not one diagnosis but a short list of hypotheses with what speaks for and against each, updated as new facts arrive. A fact that does not fit is kept, not dropped.
-- **It gives one next step, not a list of tests.** A test is suggested only when it is clear which explanations it separates and what happens after each result. Red flags come first, always.
-- **It is made for your parents and grandparents.** A window, a text box and four buttons: *What should I do next*, *Ask me questions*, *Dig deeper*, *Remember this talk*. No files, no terminal, no setup beyond signing in.
-- **It stays on your computer.** Each person is a plain folder of markdown notes on their own machine. It runs on top of Claude Code with your own Claude account.
+It runs locally on top of Claude Code, with your own Claude account. Each person's notes are a folder of markdown files on their computer.
 
-It is not a doctor and does not replace one. It helps you understand what is going on and arrive at the doctor with the right questions.
+How it works:
 
-<p align="center"><img src="docs/first-talk.png" alt="First conversation: the agent reads the person's blood test and asks why the tablets are not working; on the right, a note on the leading hypothesis with its results"></p>
-<p align="center"><sub>First conversation. Before answering, it reads the blood test she shared and quotes it: anaemia, very low ferritin, raised liver enzymes. Instead of just "ask for infusions" it asks why six months of tablets did nothing. On the right, the note on the leading hypothesis, with the results it rests on.</sub></p>
+- **Memory.** After a conversation the notes are updated: facts with dates and sources, results with numbers, hypotheses, one note per hypothesis or treatment, plans and a history of decisions.
+- **Next step.** A test is suggested only when it is clear which explanations it would separate and what each result would change. Red flags are checked first.
+- **Interface.** A chat and four buttons: *What should I do next*, *Ask me questions*, *Dig deeper*, *Remember this talk*. It is meant for people who do not work with files or a terminal.
+
+It is not a doctor and does not replace one. It helps to understand the situation and to prepare for an appointment.
+
+<p align="center"><img src="docs/first-talk.png" alt="First conversation: the agent refers to the values in the person's blood test; on the right, the note on the leading hypothesis"></p>
+<p align="center"><sub>First conversation. The agent reads the blood test in the person's folder and refers to its values. On the right, the note on the leading hypothesis with the results it is based on.</sub></p>
 
 <table>
 <tr>
@@ -27,16 +28,16 @@ It is not a doctor and does not replace one. It helps you understand what is goi
 <td width="50%"><img src="docs/next-step.png" alt="'What should I do next': one main step, why it helps, and when a blood test would be worth it"></td>
 </tr>
 <tr>
-<td>Three weeks later. She writes that she is on the diet and had the infusion but is still tired. It remembers the whole story and explains what is normal and what is worth checking. A new topic appears on the map.</td>
-<td><i>What should I do next</i>: one step, why it helps, and when a test would actually change something.</td>
+<td>Three weeks later, a new conversation continues from the notes. After it, a note on the new complaint was added to the map.</td>
+<td>Answer to <i>What should I do next</i>: one step, the reason for it, and when a test would be worth doing.</td>
 </tr>
 </table>
 
-The person in the screenshots, Anna, is fictional: one of the simulated patients in [`eval/`](eval/), followed over two conversations three weeks apart.
+The person in the screenshots is fictional, a simulated patient from [`eval/`](eval/), shown over two conversations three weeks apart.
 
 ## Two ways to use it
 
-- **The app** — a window with a chat, four buttons and a map of your notes. Made for people who should never see a file name or a terminal.
+- **The app** — a window with a chat, four buttons and a map of the notes. File names and the terminal are never shown.
 - **[concilium-markdown](concilium-markdown/)** — the same agent as a folder of markdown files and skills, for people who already use Claude Code or Codex. No app needed.
 
 Both share the same memory layout, principles and skills: the app is a shell around `concilium-markdown`.
