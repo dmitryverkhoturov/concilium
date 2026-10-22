@@ -95,6 +95,10 @@ public partial class MainWindow : Window
                         await Task.Delay(1500);
                     }
                 }
+                // CONCILIUM_SHOT_NOTE=<note id, e.g. MEMORY.md>: open that note on the right. CONCILIUM_SHOT_SCROLL=top: the talk from its start.
+                if (Environment.GetEnvironmentVariable("CONCILIUM_SHOT_NOTE") is { Length: > 0 } note) OpenNote(note);
+                if (Environment.GetEnvironmentVariable("CONCILIUM_SHOT_SCROLL") == "top") Scroller.ScrollToTop();
+                await Task.Delay(800);
                 var dpi = VisualTreeHelper.GetDpi(this);
                 var root = (FrameworkElement)Content;
                 var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)(root.ActualWidth * dpi.DpiScaleX), (int)(root.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);

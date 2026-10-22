@@ -2,6 +2,9 @@
 // run exactly as a user would run it in Claude Code) tries to find it. Like SDBench for MAI-DxO, but
 // sequential and with long-term memory. Usage: node eval/simulate.mjs <case> [maxTurns] [--schedule open,free,/sleep] [--out <folder>]
 // --out puts the person's folder there instead of eval/runs (e.g. a demo folder the app opens).
+// --app <app data folder> talks exactly as the Windows app does: its plugin and principles (short, plain words),
+// a bare memory skeleton in the folder, buttons as /concilium:<skill>. In the schedule, `sleep` without a slash is
+// the app's background memory pass: a separate run that never shows in the conversation; `/sleep` is the button.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +14,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const flag = (name) => { const i = process.argv.indexOf(name); if (i < 0) return null; const v = process.argv[i + 1]; process.argv.splice(i, 2); return v; };
 const scheduleArg = flag('--schedule');
 const outArg = flag('--out');
+const appData = flag('--app');
 const caseId = process.argv[2] || 'iron-man';
 const CASE = path.join(HERE, 'cases', caseId);
 const caseText = fs.readFileSync(path.join(CASE, 'case.md'), 'utf8');
@@ -20,8 +24,15 @@ const patientBrief = caseText.replace(/## Truth[\s\S]*?(?=\n## )/, '');
 const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 const RUN = path.join(HERE, 'runs', `${caseId}-${stamp}`);
 const FOLDER = path.join(outArg ? path.resolve(outArg) : RUN, caseText.match(/## Persona\s+(\w+)/)?.[1] || 'Person');
-fs.cpSync(path.join(HERE, '..', 'concilium-markdown'), FOLDER, { recursive: true });
-fs.rmSync(path.join(FOLDER, 'README.md'));
+const TEMPLATE = path.join(HERE, '..', 'concilium-markdown');
+if (appData) {
+  // The app keeps skills in its plugin; a new person's folder gets only the memory skeleton.
+  fs.mkdirSync(FOLDER, { recursive: true });
+  for (const f of fs.readdirSync(TEMPLATE)) if (f.endsWith('.md') && f !== 'README.md') fs.copyFileSync(path.join(TEMPLATE, f), path.join(FOLDER, f));
+} else {
+  fs.cpSync(TEMPLATE, FOLDER, { recursive: true });
+  fs.rmSync(path.join(FOLDER, 'README.md'));
+}
 if (fs.existsSync(path.join(CASE, 'documents'))) fs.cpSync(path.join(CASE, 'documents'), path.join(FOLDER, 'documents'), { recursive: true });
 
 const env = Object.fromEntries(Object.entries(process.env).filter(([k]) =>
@@ -35,25 +46,42 @@ const maxTurns = Number(process.argv[3] || SCHEDULE.length);
 
 const inside = (f) => { const r = path.relative(FOLDER, path.resolve(FOLDER, f)); return r && !r.startsWith('..') && !path.isAbsolute(r); };
 let sessionId;
+const options = (extra) => ({
+  cwd: FOLDER, env,
+  settingSources: ['project'], // only the folder's own CLAUDE.md, AGENTS.md and skills: the markdown edition as shipped
+  disallowedTools: ['Bash', 'PowerShell', 'NotebookEdit'],
+  canUseTool: async (tool, input) => {
+    if (['Write', 'Edit', 'MultiEdit'].includes(tool)) return inside(input.file_path || '')
+      ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'Write only inside the folder.' };
+    return { behavior: 'allow', updatedInput: input };
+  },
+  ...(appData ? {
+    plugins: [{ type: 'local', path: path.join(appData, 'plugin') }],
+    systemPrompt: { type: 'preset', preset: 'claude_code', append: fs.readFileSync(path.join(appData, 'principles.md'), 'utf8') },
+  } : {}),
+  ...extra,
+});
+
 async function concilium(prompt) {
   let text = '';
-  const q = query({
-    prompt,
-    options: {
-      cwd: FOLDER, env, resume: sessionId,
-      settingSources: ['project'], // only the folder's own CLAUDE.md, AGENTS.md and skills: the markdown edition as shipped
-      disallowedTools: ['Bash', 'PowerShell', 'NotebookEdit'],
-      canUseTool: async (tool, input) => {
-        if (['Write', 'Edit', 'MultiEdit'].includes(tool)) return inside(input.file_path || '')
-          ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'Write only inside the folder.' };
-        return { behavior: 'allow', updatedInput: input };
-      },
-    },
-  });
+  const q = query({ prompt, options: options({ resume: sessionId }) });
   for await (const m of q) {
     if (m.type === 'system' && m.subtype === 'init') sessionId = m.session_id;
     if (m.type === 'result') text = m.result || `[${m.subtype}]`;
   }
+  return text;
+}
+
+// The app's background memory pass: the conversation so far, filed by a separate run that leaves no conversation behind.
+async function dream() {
+  const conv = talk.map((t) => `${t.who === 'patient' ? 'PERSON' : 'AGENT'}: ${t.text}`).join('\n\n');
+  const date = new Date().toISOString().slice(0, 10);
+  const q = query({
+    prompt: `/concilium:sleep\n\nConversations to consolidate:\n\n<conversation id="${sessionId}" date="${date}">\n${conv}\n</conversation>`,
+    options: options({ persistSession: false }),
+  });
+  let text = '';
+  for await (const m of q) if (m.type === 'result') text = m.result || `[${m.subtype}]`;
   return text;
 }
 
@@ -85,13 +113,14 @@ fs.mkdirSync(RUN, { recursive: true });
 log(`# Run ${caseId} — ${stamp}`);
 for (let i = 0; i < Math.min(maxTurns, SCHEDULE.length); i++) {
   const step = SCHEDULE[i];
+  if (step === 'sleep') { log(`*Memory pass:* ${await dream()}`); continue; }
   let msg;
   if (step === 'open') msg = caseText.match(/## Opening message\s+"([\s\S]*?)"/)[1].replace(/\s+/g, ' ');
   else if (step === 'free') msg = await patient('Write your next message to the health agent.');
   else msg = step;
   talk.push({ who: 'patient', text: msg });
   log(`**Patient:** ${msg}`);
-  const reply = await concilium(msg);
+  const reply = await concilium(appData && msg.startsWith('/') ? '/concilium:' + msg.slice(1) : msg);
   talk.push({ who: 'agent', text: reply });
   log(`**Concilium:** ${reply}`);
 }
