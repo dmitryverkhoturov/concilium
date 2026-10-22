@@ -75,8 +75,12 @@ npm start
 
 Then open http://localhost:4747. On Windows, `app/Concilium.cmd` starts the server hidden and opens an app window.
 
+The Electron app is kept for reference. Its packaged builds (`npm run dist:win`) include the Claude Code binary from the Agent SDK, so they are not published.
+
 App data (the list of people and their folders) is stored next to the program in `data/`; when run from a source checkout it goes to the user's app-data folder (`%APPDATA%\Concilium`, `~/Library/Application Support/Concilium`, `~/.config/Concilium`), so nobody's data ends up in the repository.
 
 ## License
 
-MIT
+The code in this repository is under the [MIT License](LICENSE).
+
+Claude Code and the Claude Agent SDK are Anthropic's software under Anthropic's own terms. They are not part of this repository and are not shipped with the Windows app: each person installs Claude Code and signs in with their own Claude account.
