@@ -23,6 +23,11 @@ public partial class MainWindow : Window
     bool dirty, authed, panelOpen = true;
     GraphData? graph;
     readonly Dictionary<string, (string status, DateTime at)> memory = new();
+    // Conversations waiting for the running memory pass of their person; conversations being written right now.
+    readonly Dictionary<string, List<string>> queued = new();
+    readonly HashSet<string> writing = new(), warned = new();
+    // Screenshots never spend tokens on memory.
+    static readonly bool Shot = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
     readonly DispatcherTimer idle = new() { Interval = TimeSpan.FromMinutes(20) };
     Person? Cur => people.FirstOrDefault(p => p.id == pid);
     static Strings T => Strings.T;
@@ -208,6 +213,7 @@ public partial class MainWindow : Window
         ShowMemory();
         if (Cur is not { } p) { SessionsList.Children.Clear(); return; }
         Prewarm(p, null);
+        CatchUp(p);
         LoadSessions();
         LoadGraph();
     }
@@ -288,7 +294,10 @@ public partial class MainWindow : Window
         {
             var sp = new StackPanel();
             sp.Children.Add(new TextBlock { Text = CleanTitle(s.title), FontSize = 14, MaxHeight = 40, TextTrimming = TextTrimming.CharacterEllipsis });
-            sp.Children.Add(new TextBlock { Text = T.Ago((int)((DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - s.at) / 60000)), FontSize = 12, Foreground = Brush("Muted"), FontWeight = FontWeights.Normal });
+            var meta = new StackPanel { Orientation = Orientation.Horizontal };
+            meta.Children.Add(new TextBlock { Text = T.Ago((int)((DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - s.at) / 60000)), FontSize = 12, Foreground = Brush("Muted"), FontWeight = FontWeights.Normal });
+            if (writing.Contains(s.id)) { var w = (FrameworkElement)Pulse(T.Writing, 12, 6); w.Margin = new Thickness(10, 0, 0, 0); meta.Children.Add(w); }
+            sp.Children.Add(meta);
             var b = new Button { Content = sp, Style = (Style)FindResource("Ghost"), HorizontalContentAlignment = HorizontalAlignment.Left,
                 HorizontalAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(10, 8, 10, 8), Margin = new Thickness(0, 0, 0, 2), Foreground = Brush("Text") };
             if (s.id == sid) b.Background = Brush("Soft");
@@ -340,17 +349,50 @@ public partial class MainWindow : Window
 
     // ---------- memory ----------
 
+    // Conversations newer than their last memory pass: from the Code tab, a pass that failed, the window closed mid-pass.
+    static List<string> Unsaved(Person p, ISet<string> busy)
+    {
+        var dreamed = Store.Dreamed(p.id);
+        return Sessions.List(p).Where(s => dreamed.GetValueOrDefault(s.id) < s.at && !busy.Contains(s.id)).Select(s => s.id).ToList();
+    }
+
+    // Nobody has to press "remember": what was not remembered yet is remembered as soon as the person is opened.
+    async void CatchUp(Person p)
+    {
+        if (Shot || !authed) return;
+        var busy = writing.ToHashSet();
+        var ids = await Task.Run(() => Unsaved(p, busy));
+        if (ids.Count > 0) StartDream(p, ids);
+    }
+
     void StartDream(Person p, IList<string> ids)
     {
+        // One pass at a time in a folder: two would edit the same files.
+        if (memory.GetValueOrDefault(p.id).status == "running")
+        {
+            if (!queued.TryGetValue(p.id, out var q)) queued[p.id] = q = new();
+            q.AddRange(ids.Except(q).Except(writing));
+            return;
+        }
         memory[p.id] = ("running", DateTime.Now);
+        writing.UnionWith(ids);
         ShowMemory();
+        if (p.id == pid) LoadSessions();
         var started = Dream.Start(p, ids, ok => Dispatcher.BeginInvoke(() =>
         {
             memory[p.id] = (ok ? "done" : "error", DateTime.Now);
-            ShowMemory();
+            Dreamt(p, ids);
             if (ok && p.id == pid) LoadGraph();
         }));
-        if (!started) { memory[p.id] = ("nothing", DateTime.Now); ShowMemory(); }
+        if (!started) { memory[p.id] = ("nothing", DateTime.Now); Dreamt(p, ids); }
+    }
+
+    void Dreamt(Person p, IList<string> ids)
+    {
+        writing.ExceptWith(ids);
+        ShowMemory();
+        if (p.id == pid) LoadSessions();
+        if (queued.Remove(p.id, out var q) && q.Count > 0) StartDream(p, q);
     }
 
     void ShowMemory()
@@ -365,8 +407,7 @@ public partial class MainWindow : Window
         var b = new Button { Content = T.MemBtn, Style = (Style)FindResource("Ghost"), FontSize = 12.5, Padding = new Thickness(6, 4, 6, 4), HorizontalAlignment = HorizontalAlignment.Left };
         b.Click += (_, _) =>
         {
-            var dreamed = Store.Dreamed(p.id);
-            var ids = Sessions.List(p).Where(s => dreamed.GetValueOrDefault(s.id) < s.at).Select(s => s.id).ToList();
+            var ids = Unsaved(p, writing);
             if (ids.Count == 0) { memory[p.id] = ("nothing", DateTime.Now); ShowMemory(); return; }
             if (ids.Contains(sid ?? "")) dirty = false;
             StartDream(p, ids);
@@ -489,7 +530,8 @@ public partial class MainWindow : Window
         w.Children.Add(new TextBlock { Text = T.Hello(Cur?.name ?? ""), FontFamily = (FontFamily)FindResource("Serif"), FontSize = 36, Margin = new Thickness(0, 0, 0, 10) });
         w.Children.Add(new TextBlock { Text = T.HelloSub, FontSize = 17, Foreground = Brush("Muted"), Margin = new Thickness(0, 0, 0, 22) });
         var cards = new WrapPanel();
-        foreach (var a in T.Actions)
+        // "Remember" is not a button: memory is kept by itself; a small link under the conversations stays for those who want it.
+        foreach (var a in T.Actions.Where(a => a.skill != "sleep"))
         {
             var sp = new StackPanel();
             sp.Children.Add(new Shp { Data = Geometry.Parse(a.icon), Stroke = Brush("Accent"), StrokeThickness = 1.6, Width = 30, Height = 30, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 12) });
@@ -506,7 +548,7 @@ public partial class MainWindow : Window
     void RenderActions()
     {
         Actions.Children.Clear();
-        foreach (var a in T.Actions)
+        foreach (var a in T.Actions.Where(a => a.skill != "sleep"))
         {
             var b = new Button { Content = IconText(a.icon, a.title, Brush("Accent"), 15), Style = (Style)FindResource("Chip"), ToolTip = a.sub };
             b.Click += (_, _) => Send(null, a.skill);
@@ -660,6 +702,16 @@ public partial class MainWindow : Window
         ScrollEnd(true);
         var t = turn = new Turn { proc = null, work = work, skill = skill };
         SetBusy(true);
+        // The last conversation may still be going into memory; read half-written, it would start from the old picture.
+        if (memory.GetValueOrDefault(p.id).status == "running")
+        {
+            work.Children.Clear();
+            work.Children.Add(Pulse(T.Recalling));
+            var t0 = DateTime.Now;
+            while (memory.GetValueOrDefault(p.id).status == "running" && !t.stopped && DateTime.Now - t0 < TimeSpan.FromMinutes(4)) await Task.Delay(300);
+            work.Children.Clear();
+            work.Children.Add(Pulse(T.Thinking));
+        }
         try
         {
             t.proc = await Live(p, sid);
@@ -676,13 +728,13 @@ public partial class MainWindow : Window
         }
     }
 
-    UIElement Pulse(string text)
+    UIElement Pulse(string text, double size = 14, double d = 8)
     {
         var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-        var dot = new Ellipse { Width = 8, Height = 8, Fill = Brush("Accent"), Margin = new Thickness(2, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+        var dot = new Ellipse { Width = d, Height = d, Fill = Brush("Accent"), Margin = new Thickness(2, 0, d + 2, 0), VerticalAlignment = VerticalAlignment.Center };
         dot.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0.25, TimeSpan.FromSeconds(0.8)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
         sp.Children.Add(dot);
-        sp.Children.Add(new TextBlock { Text = text, Foreground = Brush("Muted"), FontSize = 14 });
+        sp.Children.Add(new TextBlock { Text = text, Foreground = Brush("Muted"), FontSize = size });
         return sp;
     }
 
@@ -735,12 +787,28 @@ public partial class MainWindow : Window
         }
         ScrollEnd();
         dirty = t.skill != "sleep";
+        if (ok && t.skill == "sleep" && sid != null && Cur is { } cur)
+            Store.MarkDreamed(cur.id, new Dictionary<string, long> { [sid] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+        // A long conversation makes the agent worse well before the window is full: offer a fresh one at 30%.
+        if (ok && t.proc is { } cp && sid != null && cp.Context > cp.Window * 0.3 && warned.Add(sid)) AddLongTalk();
         idle.Stop();
         idle.Start();
         LoadSessions();
         LoadGraph();
         // The process stays for the next message; if it died, start a fresh one now.
         if (authed && Cur is { } p && (t.proc == null || !t.proc.Alive)) { DropLive(); Prewarm(p, sid); }
+    }
+
+    void AddLongTalk()
+    {
+        var box = new StackPanel { Margin = new Thickness(0, 10, 0, 10), MaxWidth = 620, HorizontalAlignment = HorizontalAlignment.Left };
+        box.Children.Add(new TextBlock { Text = T.LongTalk, Foreground = Brush("Muted"), FontSize = 14, TextWrapping = TextWrapping.Wrap });
+        var b = new Button { Content = IconText("M12,5 V19 M5,12 H19", T.NewChat, Brush("Accent"), 15), Style = (Style)FindResource("Chip"),
+            HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
+        b.Click += NewChat_Click;
+        box.Children.Add(b);
+        Messages.Children.Add(box);
+        ScrollEnd();
     }
 
     void SetBusy(bool b)
@@ -966,7 +1034,8 @@ public partial class MainWindow : Window
         authPoll.Stop();
         Auth.Stop();
         // The memory pass outlives the window: it is a separate program run.
-        if (dirty && sid != null && Cur is { } p) Dream.Start(p, new[] { sid });
+        // If a pass is already writing this folder, the next start catches the conversation up instead.
+        if (dirty && sid != null && Cur is { } p && memory.GetValueOrDefault(p.id).status != "running") Dream.Start(p, new[] { sid });
         if (liveTask is { IsCompletedSuccessfully: true } t) t.Result.Dispose(); else DropLive();
         base.OnClosing(e);
     }

@@ -15,9 +15,7 @@ How it works:
 
 - **Memory.** After a conversation the notes are updated: facts with dates and sources, results with numbers, hypotheses, one note per hypothesis or treatment, plans and a history of decisions.
 - **Next step.** A test is suggested only when it is clear which explanations it would separate and what each result would change. Red flags are checked first.
-- **Interface.** A chat and four buttons: *What should I do next*, *Ask me questions*, *Dig deeper*, *Remember this talk*. It is meant for people who do not work with files or a terminal.
-
-It is not a doctor and does not replace one. It helps to understand the situation and to prepare for an appointment.
+- **Interface.** A chat and three buttons: *What should I do next*, *Ask me questions*, *Dig deeper*. Memory is kept by itself: a conversation is remembered when the person leaves it, and a long one ends with an offer to continue in a new one. It is meant for people who do not work with files or a terminal.
 
 <p align="center"><img src="docs/first-talk.png" alt="First conversation: the agent refers to the values in the person's blood test; on the right, the note on the leading hypothesis"></p>
 <p align="center"><sub>First conversation. The agent reads the blood test in the person's folder and refers to its values. On the right, the note on the leading hypothesis with the results it is based on.</sub></p>

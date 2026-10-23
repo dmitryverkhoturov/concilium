@@ -12,7 +12,7 @@ public class Strings
     public static Strings T => Lang == "ru" ? Ru : En;
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
-        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, Stopped, Failed, NeedsLogin, MemBtn, Starting, ByVoice, OpenFile, Attach, Remove, Picture,
+        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, Picture,
         LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, Installing, InstallFailed, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
@@ -35,7 +35,8 @@ public class Strings
         HelloSub = "Расскажите своими словами, что беспокоит. Или выберите, с чего начать:",
         NoPeople = "Для кого будем вести заметки о здоровье? Добавьте первого человека.", NoPeopleBtn = "Добавить человека",
         Thinking = "Думаю…", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
-        MemBtn = "Обновить память сейчас", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", Picture = "Снимок",
+        MemBtn = "Запомнить сейчас", Writing = "запоминаю", Recalling = "Вспоминаю прошлый разговор…",
+        LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", Picture = "Снимок",
         LoginTitle = "Подключим помощника",
         LoginText = "Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.",
         LoginBtn = "Войти через Claude", LoginWaiting = "Жду подтверждения на странице Claude…", LoginAgain = "Открыть страницу ещё раз",
@@ -53,7 +54,7 @@ public class Strings
         Tool = new() { ["Read"] = "Вспоминаю записи", ["Glob"] = "Вспоминаю записи", ["Grep"] = "Вспоминаю записи", ["WebSearch"] = "Ищу в интернете",
             ["WebFetch"] = "Читаю источник", ["Write"] = "Записываю", ["Edit"] = "Записываю", ["MultiEdit"] = "Записываю", ["Skill"] = "Беру метод",
             ["Task"] = "Поручаю помощнику", ["Agent"] = "Поручаю помощнику", ["TodoWrite"] = "Планирую", ["Bash"] = "Работаю с файлами", ["PowerShell"] = "Работаю с файлами" },
-        Mem = new() { ["running"] = "Обновляю память…", ["done"] = "Память обновлена", ["error"] = "Память не обновилась", ["nothing"] = "Нового для памяти нет" },
+        Mem = new() { ["running"] = "Запоминаю разговор…", ["done"] = "Всё запомнено", ["error"] = "Не получилось запомнить", ["nothing"] = "Всё уже запомнено" },
         Legend = new() { ["memory"] = "Главное", ["patient facts"] = "Факты", ["hypotheses"] = "Версии", ["questions"] = "Вопросы", ["todo"] = "Планы",
             ["history"] = "История", ["branch"] = "Темы", ["note"] = "Заметки", ["vault"] = "Из хранилища", ["document"] = "Документы", ["missing"] = "Нет заметки" },
     };
@@ -68,7 +69,8 @@ public class Strings
         HelloSub = "Tell me in your own words what bothers you. Or pick where to start:",
         NoPeople = "Whose health notes shall we keep? Add the first person.", NoPeopleBtn = "Add a person",
         Thinking = "Thinking…", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
-        MemBtn = "Update memory now", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", Picture = "Picture",
+        MemBtn = "Remember now", Writing = "remembering", Recalling = "Recalling the last conversation…",
+        LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", Picture = "Picture",
         LoginTitle = "Let's connect the assistant",
         LoginText = "Press the button — a Claude page will open. Sign in to your account and press \"Authorize\". Then come back to this window.",
         LoginBtn = "Sign in with Claude", LoginWaiting = "Waiting for confirmation on the Claude page…", LoginAgain = "Open the page again",
@@ -86,7 +88,7 @@ public class Strings
         Tool = new() { ["Read"] = "Recalling notes", ["Glob"] = "Recalling notes", ["Grep"] = "Recalling notes", ["WebSearch"] = "Searching the web",
             ["WebFetch"] = "Reading a source", ["Write"] = "Writing down", ["Edit"] = "Writing down", ["MultiEdit"] = "Writing down", ["Skill"] = "Using method",
             ["Task"] = "Asking a helper", ["Agent"] = "Asking a helper", ["TodoWrite"] = "Planning", ["Bash"] = "Working with files", ["PowerShell"] = "Working with files" },
-        Mem = new() { ["running"] = "Updating memory…", ["done"] = "Memory updated", ["error"] = "Memory update failed", ["nothing"] = "Nothing new to remember" },
+        Mem = new() { ["running"] = "Remembering the conversation…", ["done"] = "All remembered", ["error"] = "Could not remember", ["nothing"] = "Everything is remembered" },
         Legend = new() { ["memory"] = "Overview", ["patient facts"] = "Facts", ["hypotheses"] = "Hypotheses", ["questions"] = "Questions", ["todo"] = "Plans",
             ["history"] = "History", ["branch"] = "Topics", ["note"] = "Notes", ["vault"] = "From the vault", ["document"] = "Documents", ["missing"] = "No note yet" },
     };

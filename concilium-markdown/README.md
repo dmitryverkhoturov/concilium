@@ -4,7 +4,7 @@ A personal health agent as a plain folder of markdown files. No app: open this f
 
 The agent keeps a long-term memory in these files instead of one endless chat: facts apart from hypotheses, a ranked plan, a history of what was tried. Every conversation starts from what is already known.
 
-It is not a doctor. It helps you think: separate facts from guesses, keep rival explanations, research before ordering tests, and prepare short, useful questions for a real doctor.
+It helps you think: separate facts from guesses, keep rival explanations, research before ordering tests, and prepare short, useful questions for a real doctor.
 
 ## Start
 

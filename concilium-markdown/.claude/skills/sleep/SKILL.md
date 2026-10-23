@@ -24,6 +24,7 @@ Sleep is not a filing step. It integrates what the conversation brought into wha
 - **Files stay within budget.** In characters: `MEMORY` 20,000 · `TODO` 8,000 · `HISTORY` 15,000 · topic 15,000. Documents and verbatim sources live in their own files with no budget; memory holds the digest and a link.
 - **Memory is one connected web.** The person sees it as a map drawn from Obsidian wikilinks, so a file nobody links to is lost, and a memory file named in plain text or `code` is a missed link. Each `HYPOTHESES` entry links its topic; each topic links its hub, the facts it rests on (`PATIENT FACTS` or a facts topic), its rivals and the documents behind its numbers; each `TODO` step and question links the topic it tests; each `HISTORY` line links the topic it changed; `MEMORY` links every memory file and every open topic. Links sit inside the sentence ("the rash is in [[facts — skin]]"), not as a list of "see also" tails. No link to a file that does not exist. A document is linked by its full file name with the extension — `[[2026-09-12 blood test.pdf]]`; a date, a description or a path in `code` is not a link, and the document hangs loose on the map.
 - **One fact, one place** — the most specific node where a task needs it. Others link to it.
+- **The tree is shallow and sorted by meaning.** `MEMORY` → hub → topic is usually enough. A topic sits under the hub closest to it in meaning (a body area, a working model), so `MEMORY` and hubs point to fewer, better places.
 - **Memory is what the person said and decided.** Their corrections in their meaning; your conclusions marked as hypotheses; no filler.
 
 ## What is kept, what is forgotten
@@ -49,11 +50,25 @@ A toolbox, not a checklist: compare memory with the picture above and apply what
 - **Integrate** — work new material into the existing text of the right file; replace what it corrects everywhere; no chronicle appended at the end.
 - **Compact** — fold logs into the current state, drop superseded numbers and repeated reasoning. Before compacting, note the file's decisions, numbers and rejected options; afterwards check each survived.
 - **Create** — a topic for a new entity. Creating a topic is cheap; a missing topic means the direction gets smeared across `HYPOTHESES` and forgotten. Check no topic covers it first.
-- **Split** — only by meaning, when one file holds several entities. The parent becomes a hub.
+- **Extract source** — move verbatim material (a pasted report, a long quote, a table of results) into its own file and keep the digest with a link.
+- **Split** — only by meaning, when one file holds several entities. The parent becomes a hub: summary, current picture of the area, map of children.
 - **Merge** — topics that are one entity, or a child always read together with its parent.
 - **New home** — a direction that grew out of a topic and now has a different subject (another main complaint, another mechanism) gets a new topic; the old one keeps its scope and links to the new one. Never stretch an old topic over a new direction.
+- **Move** — put a topic under the hub where it is closest in meaning (a hypothesis under the body area or model it explains); when several topics of one area hang straight off `MEMORY`, make a hub for that area and move them under it. Fix the links.
 - **Close** — a dropped hypothesis or finished line goes to `HISTORY` in a line or two with the reason, its open actions to `TODO`, its map line marked closed.
 - **Prune links** and **rename** so names are clear without context; fix the links.
+
+## Signals
+
+- Two topics answer the same questions → merge.
+- `MEMORY` lists several topics of one area → hub, move them under it.
+- A topic sits under a hub it has little to do with → move it.
+- Many files link to a topic for the same single fact → move the fact to where it is needed.
+- A topic nobody opens on its own, always read with its parent → merge into the parent.
+- A hypothesis untouched for long and needed by no `TODO` item → close it with the reason.
+- A file over budget → compact, extract sources; split only if it holds several entities.
+- A file reads like a dated log → rewrite as current state.
+- One file links to half the folder → prune.
 
 ## Procedure
 
@@ -62,8 +77,9 @@ A toolbox, not a checklist: compare memory with the picture above and apply what
    Deep mode (the person said "deep sleep"): also read the person's messages from past conversations after the last sleep date in `HISTORY` (Claude Code: `~/.claude/projects/<folder>/*.jsonl`); record the sleep date in `HISTORY`.
 3. **Integrate** each item to its place (above). Compact every touched file.
 4. **Topic check.** List every hypothesis, model or subject the conversation spent real time on. For each: which topic holds it, and does its name say what it is? No topic or a name that does not fit → create one now. Is the leading hypothesis in `HYPOTHESES` a short entry with a link, or a wall of detail? Move the detail into its topic.
-5. **Re-rank `TODO`** against the goal in `MEMORY`: remove done and outdated items (important ones go to `HISTORY` in a line), at most five in **Next**, each with why.
-6. **Check.** Old wording of corrected facts is gone. Every memory file and topic is linked from at least one other and links onward as described above; every link resolves to an existing file. Every document in the folder (PDF, photo, scan — any file that is not `.md`, outside `.claude/`) is linked from the fact or topic that uses it; an unlinked one is opened, its facts checked against memory, and linked now. Files are within budget. A new conversation reading only `MEMORY` and one topic can continue without asking the person.
+5. **Rebalance.** Look for the signals in the files this conversation touched and their neighbours. Elsewhere, if you notice signals, apply one or two operations per sleep and leave the rest for the next: the tree improves gradually, not in one sweep. If the person asked to reorganize, go wider, still in steps.
+6. **Re-rank `TODO`** against the goal in `MEMORY`: remove done and outdated items (important ones go to `HISTORY` in a line), at most five in **Next**, each with why.
+7. **Check.** Old wording of corrected facts is gone. Every memory file and topic is linked from at least one other and links onward as described above; every link resolves to an existing file, including links to topics created, merged, moved and renamed. Every document in the folder (PDF, photo, scan — any file that is not `.md`, outside `.claude/`) is linked from the fact or topic that uses it; an unlinked one is opened, its facts checked against memory, and linked now. Files are within budget. A new conversation reading only `MEMORY` and one topic can continue without asking the person.
 
 Sleep is not interactive: never ask or wait. When unclear, choose the reasonable option, mark it "assumed", and add it to **Questions** in `TODO`.
 

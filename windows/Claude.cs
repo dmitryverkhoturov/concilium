@@ -16,6 +16,9 @@ public class ClaudeProcess : IDisposable
     public readonly string? ResumedFrom;
     public bool Busy { get; private set; }
     public bool Alive => proc is { HasExited: false };
+    // Tokens in the conversation's context after the last answer, and the model's window.
+    public int Context { get; private set; }
+    public int Window { get; private set; } = 200_000;
 
     // Raised on a background thread.
     public event Action<string>? Session;
@@ -140,11 +143,21 @@ public class ClaudeProcess : IDisposable
                     Block?.Invoke();
                 break;
             case "assistant":
+                if (top && m.GetProperty("message").TryGetProperty("usage", out var u))
+                {
+                    int N(string k) => u.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
+                    var used = N("input_tokens") + N("cache_read_input_tokens") + N("cache_creation_input_tokens") + N("output_tokens");
+                    if (used > 0) Context = used;
+                }
                 foreach (var b in m.GetProperty("message").GetProperty("content").EnumerateArray())
                     if (Sessions.Str(b, "type") == "tool_use")
                         Tool?.Invoke(Sessions.Str(b, "name") ?? "", Summarize(b.TryGetProperty("input", out var i) ? i : default));
                 break;
             case "result":
+                if (m.TryGetProperty("modelUsage", out var mu) && mu.ValueKind == JsonValueKind.Object)
+                    foreach (var model in mu.EnumerateObject())
+                        if (model.Value.TryGetProperty("contextWindow", out var cw) && cw.ValueKind == JsonValueKind.Number && cw.GetInt32() > 0)
+                            Window = cw.GetInt32();
                 Busy = false;
                 var ok = Sessions.Str(m, "subtype") == "success" && !Sessions.Bool(m, "is_error");
                 Done?.Invoke(ok, ok ? null : Sessions.Str(m, "result") ?? Sessions.Str(m, "subtype"));
@@ -263,7 +276,7 @@ public static class Dream
                 string.Join("\n\n", conv.Select(m => $"{(m.role == "user" ? "PERSON" : "AGENT")}: {m.text ?? $"[asked for: {m.skill}]"}")) +
                 "\n</conversation>");
         }
-        if (parts.Count == 0) { done?.Invoke(true); return false; }
+        if (parts.Count == 0) return false;
         // Marked up front, so a pass started as the window closes is not repeated next time.
         Store.MarkDreamed(p.id, stamps);
         try
@@ -290,7 +303,7 @@ public static class Dream
             Paths.LogError(e);
             Store.MarkDreamed(p.id, stamps.ToDictionary(kv => kv.Key, _ => 0L));
             done?.Invoke(false);
-            return false;
+            return true;
         }
     }
 }
