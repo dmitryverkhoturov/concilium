@@ -12,7 +12,7 @@ public class Strings
     public static Strings T => Lang == "ru" ? Ru : En;
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
-        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, Picture,
+        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, TasksDone, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, Picture,
         LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, Installing, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
@@ -34,7 +34,7 @@ public class Strings
         Cancel = "Отмена", Add = "Добавить", Hello = n => $"Здравствуйте{(n.Length > 0 ? ", " + n : "")}!",
         HelloSub = "Расскажите своими словами, что беспокоит. Или выберите, с чего начать:",
         NoPeople = "Для кого будем вести заметки о здоровье? Добавьте первого человека.", NoPeopleBtn = "Добавить человека",
-        Thinking = "Думаю…", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
+        Thinking = "Думаю…", TasksDone = "Готово направлений: {0} из {1}", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
         MemBtn = "Запомнить сейчас", Writing = "запоминаю", NothingNew = "Нового для памяти не было.", Noted = "Главное из разговора запомнил.", Recalling = "Вспоминаю прошлый разговор…",
         LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", Picture = "Снимок",
         LoginTitle = "Подключим помощника",
@@ -68,7 +68,7 @@ public class Strings
         Cancel = "Cancel", Add = "Add", Hello = n => $"Hello{(n.Length > 0 ? ", " + n : "")}!",
         HelloSub = "Tell me in your own words what bothers you. Or pick where to start:",
         NoPeople = "Whose health notes shall we keep? Add the first person.", NoPeopleBtn = "Add a person",
-        Thinking = "Thinking…", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
+        Thinking = "Thinking…", TasksDone = "Directions done: {0} of {1}", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
         MemBtn = "Remember now", Writing = "remembering", NothingNew = "Nothing new to note.", Noted = "Noted what mattered from this talk.", Recalling = "Recalling the last conversation…",
         LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", Picture = "Picture",
         LoginTitle = "Let's connect the assistant",

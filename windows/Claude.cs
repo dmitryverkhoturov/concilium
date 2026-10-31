@@ -26,6 +26,11 @@ public class ClaudeProcess : IDisposable
     public event Action<string>? Text;
     public event Action<string, string>? Tool;
     public event Action<bool, string?>? Done;
+    // Helpers the agent sent off in the background (research directions): the answer is not finished until they are back.
+    public event Action<int, int>? Tasks;
+    readonly HashSet<string> background = new();
+    int backgroundTotal;
+    public int Background { get { lock (background) return background.Count; } }
 
     readonly Process proc;
     readonly StringBuilder stderr = new();
@@ -113,9 +118,10 @@ public class ClaudeProcess : IDisposable
             }
         }
         catch { }
-        if (Busy)
+        if (Busy || Background > 0)
         {
             Busy = false;
+            lock (background) background.Clear();
             string err;
             lock (stderr) err = stderr.ToString().Trim();
             Done?.Invoke(false, err.Length > 0 ? err.Split('\n')[^1] : "Claude stopped");
@@ -133,6 +139,16 @@ public class ClaudeProcess : IDisposable
             case "system" when Sessions.Str(m, "subtype") == "init":
                 SessionId = Sessions.Str(m, "session_id");
                 if (SessionId != null) Session?.Invoke(SessionId);
+                break;
+            case "system" when Sessions.Str(m, "subtype") == "task_started" && Sessions.Bool(m, "is_backgrounded")
+                && Sessions.Str(m, "task_type") is "local_agent" or "local_workflow" && Sessions.Str(m, "task_id") is { } started:
+                int done, total;
+                lock (background) { if (background.Add(started)) backgroundTotal++; total = backgroundTotal; done = total - background.Count; }
+                Tasks?.Invoke(done, total);
+                break;
+            case "system" when Sessions.Str(m, "subtype") == "task_notification" && Sessions.Str(m, "task_id") is { } ended:
+                lock (background) { if (!background.Remove(ended)) break; total = backgroundTotal; done = total - background.Count; if (background.Count == 0) { backgroundTotal = 0; Busy = true; } }
+                Tasks?.Invoke(done, total);
                 break;
             case "stream_event" when top:
                 var e = m.GetProperty("event");
@@ -160,6 +176,8 @@ public class ClaudeProcess : IDisposable
                             Window = cw.GetInt32();
                 Busy = false;
                 var ok = Sessions.Str(m, "subtype") == "success" && !Sessions.Bool(m, "is_error");
+                // The CLI goes on by itself when the helpers report back; this was only the first part of the answer.
+                if (ok && Background > 0) break;
                 Done?.Invoke(ok, ok ? null : Sessions.Str(m, "result") ?? Sessions.Str(m, "subtype"));
                 break;
         }

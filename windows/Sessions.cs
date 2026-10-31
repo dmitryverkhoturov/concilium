@@ -125,7 +125,8 @@ public static class Sessions
     {
         var m = Regex.Match(t, @"<command-name>/?(?:concilium:|health-agent:)?([\w-]+)</command-name>");
         if (m.Success) return new("user", null, Renamed.GetValueOrDefault(m.Groups[1].Value, m.Groups[1].Value));
-        if (Regex.IsMatch(t, "^<(local-command|command-message|command-args)")) return null;
+        // Service lines: commands' echo and the reports of background helpers.
+        if (Regex.IsMatch(t, "^<(local-command|command-message|command-args|task-notification)")) return null;
         m = Regex.Match(t, @"^/(?:concilium:)([\w-]+)\s*(.*)$", RegexOptions.Singleline);
         if (m.Success) return new("user", null, m.Groups[1].Value);
         var (text, files) = Documents.Split(t);

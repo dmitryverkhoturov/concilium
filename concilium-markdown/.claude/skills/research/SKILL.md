@@ -74,10 +74,11 @@ Nothing found is a result too: write "searched, no data" — it stops the next r
 
 ## 8. Tell the person
 
-In their language, plain words, explaining every term once (what a test is, what a syndrome is):
-- what was confirmed and what was refuted, strongest first;
-- what this changes in the picture and the plan — or that it changes nothing;
-- what found no data;
-- what the next round could look at.
+The answer in the chat is the report: a readable piece of about two pages, in their language, plain words, explaining every term once (what a test is, what a syndrome is). Shape:
+- **In short** — three to five sentences: the main thing found and what it changes.
+- **One section per finding**, strongest first, with a plain heading: what the studies say, how sure that is (a large trial, a few cases, only a theory) and how well it fits this person; confirmed and refuted alike. Name a source in words with its link where a claim matters ("a 2023 review of 40 studies").
+- **What this changes** — in the picture and the plan, or that it changes nothing.
+- **Not found** — what was searched and gave no data.
+- **Next time** — what the next round could look at.
 
-No file names, no hypothesis codes.
+Markdown that renders cleanly: `##` headings, short paragraphs, plain bullet lists; no tables, no nested lists, no horizontal rules. No file names, no hypothesis codes.

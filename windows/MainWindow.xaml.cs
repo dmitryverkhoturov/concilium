@@ -90,9 +90,11 @@ public partial class MainWindow : Window
                     // Several messages: "a || b". "@last" opens the latest conversation first.
                     foreach (var part in say.Split("||", StringSplitOptions.TrimEntries))
                     {
-                        if (part == "@last")
+                        // "@<id>" opens that conversation.
+                        if (part.StartsWith('@'))
                         {
-                            if (Cur is { } cp && Sessions.List(cp).FirstOrDefault() is { } last) OpenSession(last.id);
+                            if (part != "@last") OpenSession(part[1..]);
+                            else if (Cur is { } cp && Sessions.List(cp).FirstOrDefault() is { } last) OpenSession(last.id);
                             await Task.Delay(1500);
                             continue;
                         }
@@ -743,6 +745,7 @@ public partial class MainWindow : Window
         cp.Block += () => On(t => { if (t.buf.Length > 0) t.buf.Append("\n\n"); });
         cp.Text += s => On(t => { t.buf.Append(s); t.changed = true; });
         cp.Tool += (name, input) => On(t => ToolLine(t, name, input));
+        cp.Tasks += (done, total) => On(t => ToolLine(t, "", string.Format(T.TasksDone, done, total)));
         cp.Done += (ok, err) => On(t => Finish(t, ok, err));
         return cp;
     }
@@ -807,8 +810,9 @@ public partial class MainWindow : Window
     void ToolLine(Turn t, string name, string input)
     {
         // Internal plumbing is not shown; file names mean nothing to the person, only web topics and sources are worth showing.
-        if (!T.Tool.TryGetValue(name, out var label)) return;
-        var text = name is "WebSearch" or "WebFetch" && input.Length > 0 ? $"{label}: {input}" : label;
+        string? label = null;
+        if (name.Length > 0 && !T.Tool.TryGetValue(name, out label)) return;
+        var text = name.Length == 0 ? input : name is "WebSearch" or "WebFetch" && input.Length > 0 ? $"{label}: {input}" : label!;
         if (text == t.lastTool) return;
         t.lastTool = text;
         foreach (var c in t.work.Children.OfType<StackPanel>()) { c.Children[0].BeginAnimation(OpacityProperty, null); c.Children[0].Opacity = 0.3; }
@@ -895,7 +899,8 @@ public partial class MainWindow : Window
         t.proc.Interrupt();
         var cp = t.proc;
         // If it does not stop by itself, end the process; a new one is started for the next message.
-        Task.Delay(5000).ContinueWith(_ => { if (cp.Busy) cp.Dispose(); });
+        // Waiting for helpers in the background, the CLI has no turn to interrupt.
+        Task.Delay(cp.Busy ? 5000 : 0).ContinueWith(_ => { if (cp.Busy || cp.Background > 0) cp.Dispose(); });
     }
 
     void Send_Click(object s, RoutedEventArgs e)
