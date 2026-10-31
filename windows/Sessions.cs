@@ -23,7 +23,9 @@ public static class Sessions
         return null;
     }
 
-    record Cached(DateTime mtime, SessionInfo? info);
+    // Claude Code turns every non-Latin letter of the path into "-", so two Cyrillic folders of the same length
+    // share one projects folder. Each conversation records its real folder (cwd); only that one counts.
+    record Cached(DateTime mtime, SessionInfo? info, string? cwd);
     static readonly Dictionary<string, Cached> cache = new();
 
     public static List<SessionInfo> List(Person p)
@@ -34,18 +36,25 @@ public static class Sessions
         foreach (var f in Directory.GetFiles(dir, "*.jsonl"))
         {
             var mtime = File.GetLastWriteTimeUtc(f);
-            lock (cache)
-                if (cache.TryGetValue(f, out var c) && c.mtime == mtime) { if (c.info != null) list.Add(c.info); continue; }
-            var info = Read(f, mtime);
-            lock (cache) cache[f] = new(mtime, info);
-            if (info != null) list.Add(info);
+            Cached? c;
+            lock (cache) cache.TryGetValue(f, out c);
+            if (c == null || c.mtime != mtime)
+            {
+                var (info, cwd) = Read(f, mtime);
+                c = new(mtime, info, cwd);
+                lock (cache) cache[f] = c;
+            }
+            if (c.info != null && SameFolder(c.cwd, p.path)) list.Add(c.info);
         }
         return list.OrderByDescending(s => s.at).ToList();
     }
 
-    static SessionInfo? Read(string file, DateTime mtime)
+    public static bool SameFolder(string? cwd, string folder) =>
+        cwd == null || string.Equals(Path.GetFullPath(cwd).TrimEnd('\\'), Path.GetFullPath(folder).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase);
+
+    static (SessionInfo?, string?) Read(string file, DateTime mtime)
     {
-        string? custom = null, summary = null, first = null;
+        string? custom = null, summary = null, first = null, cwd = null;
         DateTimeOffset? last = null;
         foreach (var line in ReadLines(file))
         {
@@ -54,6 +63,7 @@ public static class Sessions
                 using var doc = JsonDocument.Parse(line);
                 var r = doc.RootElement;
                 var type = Str(r, "type");
+                cwd ??= Str(r, "cwd");
                 // The time of the last real message: resuming a conversation (switching to it, the app's
                 // background memory pass) appends service lines, so the file's own time says "just now".
                 if (type is "user" or "assistant" && !Bool(r, "isMeta") && !Bool(r, "isSidechain")
@@ -68,11 +78,11 @@ public static class Sessions
             }
             catch { }
         }
-        if (first == null) return null;
+        if (first == null) return (null, cwd);
         // Background memory passes of the old app were stored as conversations; they are not the person's talks.
-        if (first.Contains("Conversations to consolidate")) return null;
+        if (first.Contains("Conversations to consolidate")) return (null, cwd);
         var at = (last ?? new DateTimeOffset(mtime)).ToUnixTimeMilliseconds();
-        return new(Path.GetFileNameWithoutExtension(file), custom ?? summary ?? first, at);
+        return (new(Path.GetFileNameWithoutExtension(file), custom ?? summary ?? first, at), cwd);
     }
 
     public static List<Msg> Conversation(Person p, string id)
