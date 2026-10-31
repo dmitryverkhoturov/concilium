@@ -359,6 +359,13 @@ public static class Dream
     {
         var p = Store.People().FirstOrDefault(x => x.id == personId);
         if (p == null) return 1;
+        // Without access to Claude nothing is marked: the next pass picks these conversations up.
+        if (Region.Blocked().GetAwaiter().GetResult())
+        {
+            Paths.LogRemember("Claude is not available from this network; nothing done");
+            Store.Finish(personId, ids, null, null);
+            return 1;
+        }
         try
         {
             var parts = new List<string>();

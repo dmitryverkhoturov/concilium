@@ -135,6 +135,10 @@ public partial class MainWindow : Window
         try { Store.Baseline(people); } catch (Exception e) { Paths.LogError(e); }
         if (Cur == null) pid = people.FirstOrDefault()?.id ?? "";
         RenderPeople();
+        updated = Updater.JustUpdated();
+        // Snapshots do not update, unless a test pretends to be an older version (CONCILIUM_VERSION).
+        var updates = !Shot || Environment.GetEnvironmentVariable("CONCILIUM_VERSION") != null;
+        if (updates) _ = Updater.Check();
         if (!authed) { RenderLogin(); return; }
         SelectPerson(pid);
         App.Mark("person selected");
@@ -429,9 +433,13 @@ public partial class MainWindow : Window
         if (queued.Remove(p.id, out var q) && q.Count > 0) StartDream(p, q);
     }
 
+    Version? updated;
+
     void ShowMemory()
     {
         Memory.Children.Clear();
+        if (updated != null)
+            Memory.Children.Add(new TextBlock { Text = string.Format(T.Updated, updated), FontSize = 12.5, Foreground = Brush("Muted"), Margin = new Thickness(6, 0, 0, 4) });
         if (Cur is not { } p || !authed) return;
         var (status, at) = memory.GetValueOrDefault(p.id, ("idle", DateTime.Now));
         if (T.Mem.TryGetValue(status, out var label))
@@ -755,6 +763,8 @@ public partial class MainWindow : Window
         if (streaming || Cur is not { } p || !authed) return;
         text = (text ?? "").Trim();
         if (text.Length == 0 && skill == null && attached.Count == 0) return;
+        // From a network where Claude is not offered nothing would come back: say so, the message stays in the box.
+        if (await Region.Blocked()) { AddError(T.Vpn); ScrollEnd(true); return; }
         string[] files;
         try { files = attached.Select(f => Documents.Keep(p, f)).ToArray(); }
         catch (Exception e) { Paths.LogError(e); AddError(T.Failed + e.Message); return; }
@@ -1115,6 +1125,7 @@ public partial class MainWindow : Window
                 if (memory.GetValueOrDefault(p.id).status != "running" && Store.Running(p.id) == null && Unsaved(p, writing) is { Count: > 0 } ids)
                     Dream.Start(p, ids);
         if (liveTask is { IsCompletedSuccessfully: true } t) t.Result.Dispose(); else DropLive();
+        if (!Shot || Environment.GetEnvironmentVariable("CONCILIUM_VERSION") != null) Updater.ApplyOnExit();
         base.OnClosing(e);
     }
 }

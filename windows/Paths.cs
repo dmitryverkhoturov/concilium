@@ -14,7 +14,7 @@ public static class Paths
     // Shipped next to the exe; from a source checkout it is found up the tree.
     public static readonly string Template = FindUp("concilium-markdown") ?? Path.Combine(ExeDir, "concilium-markdown");
 
-    static readonly bool Packaged = Directory.Exists(Path.Combine(ExeDir, "concilium-markdown"));
+    public static readonly bool Packaged = Directory.Exists(Path.Combine(ExeDir, "concilium-markdown"));
 
     // The portable build (a "portable.txt" next to the exe) keeps its data next to the program.
     // Otherwise data lives in %APPDATA%\Concilium: reinstalling or updating the program does not touch it,
