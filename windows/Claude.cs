@@ -83,6 +83,8 @@ public class ClaudeProcess : IDisposable
     {
         Person = p;
         ResumedFrom = SessionId = resume;
+        // Even starting the CLI reaches Claude's servers: not from a network where it is not offered.
+        if (UnsupportedRegion.Blocked().GetAwaiter().GetResult()) throw new InvalidOperationException(Strings.T.Vpn);
         proc = Process.Start(StartInfo(p, Args(p, resume)))!;
         new Thread(ReadOut) { IsBackground = true }.Start();
         new Thread(() => { for (string? l; (l = proc.StandardError.ReadLine()) != null;) lock (stderr) { stderr.AppendLine(l); if (stderr.Length > 8000) stderr.Remove(0, 4000); } }) { IsBackground = true }.Start();
@@ -207,13 +209,15 @@ public static class Installer
     public static bool Pending => run is { HasExited: false };
     public static bool Failed => run is { HasExited: true } && !Paths.HasClaude;
 
-    public static void Start()
+    public static bool Start()
     {
-        if (Pending) return;
+        if (Pending) return true;
+        if (UnsupportedRegion.Blocked().GetAwaiter().GetResult()) return false;
         var psi = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };
         foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm https://claude.ai/install.ps1 | iex" }) psi.ArgumentList.Add(a);
         ClaudeProcess.CleanEnv(psi.Environment);
         try { run = Process.Start(psi); } catch (Exception e) { Paths.LogError(e); }
+        return true;
     }
 
     // Anthropic's installer puts claude.exe into ~/.local/bin and only advises adding it to PATH.
@@ -268,9 +272,10 @@ public static class Auth
     public static bool Pending => login is { HasExited: false };
     public static bool Failed => login is { HasExited: true } && login.ExitCode != 0 && !LoggedIn();
 
-    public static void Start()
+    public static bool Start()
     {
-        if (Pending) return;
+        if (Pending) return true;
+        if (UnsupportedRegion.Blocked().GetAwaiter().GetResult()) return false;
         Url = null;
         lock (output) output.Clear();
         var psi = new ProcessStartInfo(Paths.Claude)
@@ -293,6 +298,7 @@ public static class Auth
         }
         new Thread(() => Read(login.StandardOutput)) { IsBackground = true }.Start();
         new Thread(() => Read(login.StandardError)) { IsBackground = true }.Start();
+        return true;
     }
 
     // Without a terminal the CLI signs in by code: the page shows "code#state", the CLI reads it from stdin.
@@ -360,7 +366,7 @@ public static class Dream
         var p = Store.People().FirstOrDefault(x => x.id == personId);
         if (p == null) return 1;
         // Without access to Claude nothing is marked: the next pass picks these conversations up.
-        if (Region.Blocked().GetAwaiter().GetResult())
+        if (UnsupportedRegion.Blocked().GetAwaiter().GetResult())
         {
             Paths.LogRemember("Claude is not available from this network; nothing done");
             Store.Finish(personId, ids, null, null);

@@ -496,7 +496,7 @@ public partial class MainWindow : Window
             if (text.Length == 0) return;
             if (Auth.IsPageLink(text)) { err.Text = T.LoginPageLink; code.Text = ""; return; }
             rejected = Auth.Rejected;
-            if (!Auth.Pending) { Auth.Start(); rejected = 0; err.Text = T.LoginExpired; code.Text = ""; startedAt = DateTime.Now; return; }
+            if (!Auth.Pending) { if (!Auth.Start()) { err.Text = T.Vpn; return; } rejected = 0; err.Text = T.LoginExpired; code.Text = ""; startedAt = DateTime.Now; return; }
             err.Text = "";
             wait.Text = Auth.Code(text) ? T.LoginChecking : T.LoginFailed;
         }
@@ -513,8 +513,12 @@ public partial class MainWindow : Window
 
         void ShowPending() { btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now; }
         // One button: if Claude Code is not on this computer yet, it is installed first, then sign-in starts by itself.
-        void Begin()
+        async void Begin()
         {
+            btn.IsEnabled = false;
+            var blocked = await UnsupportedRegion.Blocked();
+            btn.IsEnabled = true;
+            if (blocked) { err.Text = T.Vpn; return; }
             ShowPending();
             if (Paths.HasClaude) { wait.Text = T.LoginWaiting; Auth.Start(); }
             else { wait.Text = T.Installing; Installer.Start(); }
@@ -539,7 +543,11 @@ public partial class MainWindow : Window
             }
             Installer.EnsurePath();
             // Just installed: go on to sign-in.
-            if (!Auth.Pending && !Auth.LoggedIn() && !Auth.Failed) { wait.Text = T.LoginWaiting; startedAt = DateTime.Now; Auth.Start(); return; }
+            if (!Auth.Pending && !Auth.LoggedIn() && !Auth.Failed)
+            {
+                if (!Auth.Start()) { authPoll.Stop(); err.Text = T.Vpn; btn.Visibility = Visibility.Visible; pending.Visibility = Visibility.Collapsed; return; }
+                wait.Text = T.LoginWaiting; startedAt = DateTime.Now; return;
+            }
             if (Auth.LoggedIn())
             {
                 authPoll.Stop();
@@ -764,7 +772,7 @@ public partial class MainWindow : Window
         text = (text ?? "").Trim();
         if (text.Length == 0 && skill == null && attached.Count == 0) return;
         // From a network where Claude is not offered nothing would come back: say so, the message stays in the box.
-        if (await Region.Blocked()) { AddError(T.Vpn); ScrollEnd(true); return; }
+        if (await UnsupportedRegion.Blocked()) { AddError(T.Vpn); ScrollEnd(true); return; }
         string[] files;
         try { files = attached.Select(f => Documents.Keep(p, f)).ToArray(); }
         catch (Exception e) { Paths.LogError(e); AddError(T.Failed + e.Message); return; }

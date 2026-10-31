@@ -2,20 +2,22 @@
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json.Nodes;
 
 namespace Concilium;
 
-public static class Region
+public static class UnsupportedRegion
 {
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
     static (DateTime at, bool blocked)? cache;
 
-    // Where Claude is not offered, its API refuses every request with 403; elsewhere a request without a key gets 401.
-    // No list of places: the service itself says. No network or no answer: go ahead, Claude will say what is wrong.
+    // Where Claude is not offered (everything outside its published list of supported places).
+    static readonly HashSet<string> Claude = new("AF BY CN CU HK IR KP MM MO RU SY VE YE".Split(' '));
+
+    // Nothing is ever sent to Claude's servers to find out: the country of this network's address comes from
+    // Cloudflare's public trace page and is checked against the list. No answer (no network): go ahead as usual.
     public static async Task<bool> Blocked()
     {
         if (Environment.GetEnvironmentVariable("CONCILIUM_REGION_BLOCKED") is { Length: > 0 } force) return force == "1";
@@ -23,8 +25,8 @@ public static class Region
         var blocked = false;
         try
         {
-            using var r = await Http.PostAsync("https://api.anthropic.com/v1/messages", new StringContent("{}", Encoding.UTF8, "application/json"));
-            blocked = r.StatusCode == HttpStatusCode.Forbidden;
+            var trace = await Http.GetStringAsync("https://www.cloudflare.com/cdn-cgi/trace").ConfigureAwait(false);
+            if (System.Text.RegularExpressions.Regex.Match(trace, @"(?m)^loc=([A-Z]{2})\s*$") is { Success: true } m) blocked = Claude.Contains(m.Groups[1].Value);
         }
         catch { }
         cache = (DateTime.UtcNow, blocked);
