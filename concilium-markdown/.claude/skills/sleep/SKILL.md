@@ -1,95 +1,76 @@
 ---
 name: sleep
-description: Remember the conversation — integrate it into the health folder's memory and keep memory efficient. Run when a conversation ends, before a new one, when context is running out, or when the person says "remember this", "sleep", "save", "update memory", "we're done" (or the same in any other language). Works new facts, hypothesis changes and decisions into PATIENT FACTS / HYPOTHESES / topics / TODO / HISTORY / MEMORY, compacts what no longer matters, and keeps the topic tree small and easy to walk.
+description: Project sleep — integrate the session into memory and keep memory efficient. Run at the end of a session, before starting a parallel session, when context is running out, or when the user says "sleep", "wrap up", "save state", "update memory and topics", "reorganize memory", "we're done" (or the same in any other language). Works new material into the existing logic of MEMORY / topics / HISTORY / TODO, compacts and forgets what no longer matters, and gradually rebalances the topic tree (merge, split, move, close, prune links) so every file stays within budget and the needed fact is a few obvious steps away. Works in projects with AGENTS.md and memory files.
 ---
 
 # Sleep: integrate, compact, rebalance
 
-Goal: the next conversation starts from the same place and knows what you know, at the lowest context cost. The person should never have to repeat themselves or check what was lost.
+Goal: the next session starts from the same place and knows what you know, at the lowest context cost. The user should not have to explain where to put things or check what was lost.
 
-Sleep is not a filing step. It integrates what the conversation brought into what memory already holds, forgets what no longer matters, and reorganizes so memory stays small.
-
-## Input
-
-- If the arguments contain conversation transcripts, those are the material.
-- Otherwise use the current conversation.
+Sleep is not a filing step. It integrates what the session brought into what memory already holds, forgets what no longer matters, and reorganizes so memory stays small and easy to walk.
 
 ## Good memory looks like this
 
-- **`MEMORY` is the gate.** The person's goal at the top, how the agent works here, the current picture (complaints, working model, plan), a map of topics. Narrow topics are reached through their hub.
-- **`PATIENT FACTS` holds facts only** — what the person said or a document shows, each with a date and a source ("said 2026-10-08", "blood test 12.09.25"). A guess is never a fact.
-- **`HYPOTHESES` is a short registry** — per hypothesis the claim, probability, key for/against, one-line next step, a link to its topic. Details live in the topic.
-- **One topic, one entity.** A hypothesis, a working model, one body area's facts, a doctor, a treatment trial. A confirmed diagnosis and its treatment are two entities: the treatment (a diet, a medicine, a course of infusions) gets its own topic once it starts. The file holds its current state: facts, mechanism, sources, rivals, next step. How the state was reached takes one or two lines.
-- **The leading hypothesis always has its own topic**, named after what it claims. So does every hypothesis or model the conversation spent real time on.
-- **Files stay within budget.** In characters: `MEMORY` 20,000 · `TODO` 8,000 · `HISTORY` 15,000 · topic 15,000. Documents and verbatim sources live in their own files with no budget; memory holds the digest and a link.
-- **Memory is one connected web.** The person sees it as a map drawn from Obsidian wikilinks, so a file nobody links to is lost, and a memory file named in plain text or `code` is a missed link. Each `HYPOTHESES` entry links its topic; each topic links its hub, the facts it rests on (`PATIENT FACTS` or a facts topic), its rivals and the documents behind its numbers; each `TODO` step and question links the topic it tests; each `HISTORY` line links the topic it changed; `MEMORY` links every memory file and every open topic. Links sit inside the sentence ("the rash is in [[facts — skin]]"), not as a list of "see also" tails. No link to a file that does not exist. A document is linked by its full file name with the extension — `[[2026-09-12 blood test.pdf]]`; a date, a description or a path in `code` is not a link, and the document hangs loose on the map.
+Judge every sleep against this picture:
+- **`MEMORY` is the gate.** Goal and success criteria at the top, hard rules, canon, a map of the main areas. Narrow topics are reached through their hub, not listed in `MEMORY` one by one.
+- **One topic, one entity.** A file holds the current state of one thing: context, state, options, dead ends, sources, next step. How the state was reached takes one or two lines.
+- **Files stay within budget.** In characters: `MEMORY` 20,000 · `TODO` 8,000 · `HISTORY` 15,000 · topic 15,000. Raw sources (transcripts, articles, quotes, tables) live verbatim in their own files with no budget; the topic holds the digest and links to them.
+- **Links are few and purposeful.** A link exists only where a task in this file will need to follow it, and says what is there and why to go. No boilerplate "related: MEMORY, HISTORY, TODO".
+- **Few steps, few links.** Too few links means long walks to a fact; too many turns the graph into noise. The balance comes from where topics sit in the tree, not from linking "just in case". The tree is shallow: `MEMORY` → topic → child.
 - **One fact, one place** — the most specific node where a task needs it. Others link to it.
-- **The tree is shallow and sorted by meaning.** `MEMORY` → hub → topic is usually enough. A topic sits under the hub closest to it in meaning (a body area, a working model), so `MEMORY` and hubs point to fewer, better places.
-- **Memory is what the person said and decided.** Their corrections in their meaning; your conclusions marked as hypotheses; no filler.
+- **Memory is what the user thinks.** The user's decisions, corrections and requirements in their meaning; your own conclusions marked as hypotheses; no rules the user did not approve; no filler.
 
 ## What is kept, what is forgotten
 
-For each line ask: if it were deleted, would a future conversation give different advice or repeat a mistake? If not, it goes. Always kept: facts with dates, results with numbers and units, decisions, done and declined steps with the reason, rejected hypotheses with the reason, untested ideas (marked "untested"), the person's corrections. A topic that absorbed new material stays about the same size: room comes from condensing older content, not from spreading text into new files.
+Sessions pile notes on top of each other until a file is a log with no conclusions. For each line ask: if it were deleted, would a future session make a different decision or repeat a mistake? If not, it goes. Always kept: decisions, final numbers (units, window, date), rejected options with the reason, dead ends, untested ideas (marked "untested"), the user's corrections. Before calling something stale, verify it (code, data, date). A topic that absorbed new material stays about the same size: room comes from condensing older, less important content, not from spreading text into new files.
 
-Something the person repeated, or "I already told you", is a failure signal: record it where it will be read first.
-
-## Where each thing goes
-
-- facts → `PATIENT FACTS` or its facts topic;
-- an answer to an open question → the fact goes to facts, the question leaves `TODO`;
-- new or weakened evidence → the hypothesis's topic, and its line in `HYPOTHESES` (probability, key for/against). Do not re-research here; that is the `research` skill;
-- decisions, done or declined steps → `HISTORY` in a dated line; the future → `TODO`;
-- new open questions → `TODO` under **Questions**, with which hypotheses they separate;
-- the picture changed → `MEMORY` "Current picture" and its date;
-- a document the person shared → it stays where it is (`documents/` for new ones), untouched; each fact taken from it links the file, and so does the topic whose numbers rest on it.
+A requirement the user repeated, or "I already told you", is a failure signal: it becomes a rule with the reason, at the top of `MEMORY` or in its topic.
 
 ## Operations
 
-A toolbox, not a checklist: compare memory with the picture above and apply what it needs now.
+A toolbox, not a checklist: compare memory with the picture above and apply only what it needs now.
 
 - **Integrate** — work new material into the existing text of the right file; replace what it corrects everywhere; no chronicle appended at the end.
-- **Compact** — fold logs into the current state, drop superseded numbers and repeated reasoning. Before compacting, note the file's decisions, numbers and rejected options; afterwards check each survived.
-- **Create** — a topic for a new entity. Creating a topic is cheap; a missing topic means the direction gets smeared across `HYPOTHESES` and forgotten. Check no topic covers it first.
-- **Extract source** — move verbatim material (a pasted report, a long quote, a table of results) into its own file and keep the digest with a link.
-- **Split** — only by meaning, when one file holds several entities. The parent becomes a hub: summary, current picture of the area, map of children.
-- **Merge** — topics that are one entity, or a child always read together with its parent.
-- **New home** — a direction that grew out of a topic and now has a different subject (another main complaint, another mechanism) gets a new topic; the old one keeps its scope and links to the new one. Never stretch an old topic over a new direction.
-- **Move** — put a topic under the hub where it is closest in meaning (a hypothesis under the body area or model it explains); when several topics of one area hang straight off `MEMORY`, make a hub for that area and move them under it. Fix the links.
-- **Close** — a dropped hypothesis or finished line goes to `HISTORY` in a line or two with the reason, its open actions to `TODO`, its map line marked closed.
-- **Prune links** and **rename** so names are clear without context; fix the links.
+- **Compact** — fold logs into the current state, drop superseded numbers and repeated reasoning. Before compacting, note the file's decisions, final numbers and rejected options; afterwards check each survived.
+- **Extract source** — move verbatim material into a source file and keep the digest.
+- **Create** — only for a new logical entity with its own logic, or a genuinely large separate part of an existing one. Check no topic covers it first. Never invent an entity to fit a budget.
+- **Split** — only by meaning, when one file really holds several entities. The parent becomes a hub: summary, canon, map of children.
+- **Merge** — topics that are one entity, and children always read together with their parent. Different entities are not merged just because they sit next to each other.
+- **Move** — put a topic under the parent where it is closest in meaning, so `MEMORY` and hubs point to fewer, better places.
+- **Close** — a finished line goes to `HISTORY` in a line or two, its open actions to `TODO`, its map line marked closed.
+- **Prune links** — remove links nobody would follow for a task here; add a missing one where a task gets stuck.
+- **Rename** — a name clear without context, distinct from neighbours, in the project's style; fix the links.
+
+Canon is separate from research: a current best pipeline, algorithm or spec is its own entry-point topic, research links to it.
 
 ## Signals
 
 - Two topics answer the same questions → merge.
 - `MEMORY` lists several topics of one area → hub, move them under it.
-- A topic sits under a hub it has little to do with → move it.
 - Many files link to a topic for the same single fact → move the fact to where it is needed.
 - A topic nobody opens on its own, always read with its parent → merge into the parent.
-- A hypothesis untouched for long and needed by no `TODO` item → close it with the reason.
+- A topic untouched for long and needed by no `TODO` item → close.
 - A file over budget → compact, extract sources; split only if it holds several entities.
 - A file reads like a dated log → rewrite as current state.
-- One file links to half the folder → prune.
+- Links to `MEMORY` / `HISTORY` / `TODO` or to half the project from one file → prune.
 
 ## Procedure
 
-1. **Enter.** Read `AGENTS.md` and `MEMORY` if not read yet; look at `topics/`, `TODO`, the latest `HISTORY`. File names may carry a prefix (`Mom MEMORY.md`). Measure sizes.
-2. **Collect.** From the material: new or changed facts, evidence for or against hypotheses, new hypotheses, decisions, done and declined steps, the person's corrections, new questions, next steps.
-   Deep mode (the person said "deep sleep"): also read the person's messages from past conversations after the last sleep date in `HISTORY` (Claude Code: `~/.claude/projects/<folder>/*.jsonl`); record the sleep date in `HISTORY`.
-3. **Integrate** each item to its place (above). Compact every touched file.
-4. **Topic check.** List every hypothesis, model or subject the conversation spent real time on. For each: which topic holds it, and does its name say what it is? No topic or a name that does not fit → create one now. Is the leading hypothesis in `HYPOTHESES` a short entry with a link, or a wall of detail? Move the detail into its topic.
-5. **Rebalance.** Look for the signals in the files this conversation touched and their neighbours. Elsewhere, if you notice signals, apply one or two operations per sleep and leave the rest for the next: the tree improves gradually, not in one sweep. If the person asked to reorganize, go wider, still in steps.
-6. **Re-rank `TODO`** against the goal in `MEMORY`: remove done and outdated items (important ones go to `HISTORY` in a line), at most five in **Next**, each with why.
-7. **Check.** Old wording of corrected facts is gone. Every memory file and topic is linked from at least one other and links onward as described above; every link resolves to an existing file, including links to topics created, merged, moved and renamed. Every document in the folder (PDF, photo, scan — any file that is not `.md`, outside `.claude/`) is linked from the fact or topic that uses it; an unlinked one is opened, its facts checked against memory, and linked now. Files are within budget. A new conversation reading only `MEMORY` and one topic can continue without asking the person.
+1. **Enter.** Read `AGENTS.md` and `MEMORY` if not read in this session; look at `topics/`, `TODO`, latest `HISTORY`. Measure sizes: `python -c "import sys; [print(len(open(f, encoding='utf-8').read()), f) for f in sys.argv[1:]]" *.md topics/*.md`
+2. **Collect.** From the session: what is new or changed against current memory — decisions and rejected options with reasons, corrections in the user's wording, stressed requirements, results with source and date, new entities, what turned out wrong, open questions, next steps.
+   Deep mode (the user said "sleep" or "deep sleep"): also read user messages from past sessions after the last sleep date in `HISTORY` (Claude Code: `~/.claude/projects/<project folder>/*.jsonl`); record the sleep date in `HISTORY`.
+3. **Integrate.** Each item to its place: `MEMORY` (thin gate), topic (details of one entity), `HISTORY` (closed decisions and stages, briefly), `TODO` (only the future), or nowhere. Integrate and compact every touched file and its neighbours by meaning. If the subject belongs to another project (`../<project>/`), write into its topic and link from here.
+4. **Rebalance.** Look for the signals in the files this session touched and their neighbours. Elsewhere, if you notice signals, apply one or two operations per sleep and put the rest in `TODO`: the tree improves gradually, not in one sweep. If the user asked to reorganize, go wider, still in steps.
+5. **Re-rank `TODO`.** Re-read the goal in `MEMORY` (if missing, write the one the work implies, marked "unconfirmed"). Remove done, outdated and duplicate items; important ones go to `HISTORY` in a line. Rank by impact on the goal, then unblocking other work, then a cheap check that can confirm or kill a direction, then cost; recency and "already started" are not reasons. **Next**: at most five steps, each with one line on why. The rest: **Backlog** by topic, or inside the topic. If the top is a deep sub-step of one line while another would move the goal more, say so.
+6. **Check.** Old wording of corrected facts is gone. Links to created, merged, moved and renamed topics resolve. Every file is within budget or the report says why. A new session reading only `MEMORY` and the topic its task needs can continue without asking the user.
+7. **Report**, short, in the user's language: what was integrated where; topics created, merged, split, moved, closed; what was forgotten or condensed; new top of **Next**; budget overruns; what remains open and which rebalancing was left for later.
 
-Sleep is not interactive: never ask or wait. When unclear, choose the reasonable option, mark it "assumed", and add it to **Questions** in `TODO`.
-
-## Output
-
-Two to four plain lines for the person, in their language: what you noted and what changed in the picture. If you started a new topic, say it in plain words ("I started a separate note about …"). No file names.
+Sleep is not interactive: never ask or wait. When unclear, choose the reasonable option, mark it "assumed" where written, add it to open questions in `TODO`, mention it in the report.
 
 ## Never
-
-- Delete files, except a topic whose whole content was merged elsewhere (fix the links).
-- Edit documents, human notes, `AGENTS.md` or `PRINCIPLES.md`.
-- Turn a guess into a fact, or drop a fact because it does not fit the leading hypothesis.
-- Write to memory if the person said "test" or "don't record this".
+- Delete files without the user's permission, except a topic whose whole content was merged or closed elsewhere (delete it and fix the links). Raw sources and human documents are never deleted.
+- Edit human documents or `AGENTS.md` without an explicit request.
+- Change entries of another session or agent when their origin is unclear.
+- Create files or mechanisms nobody will read.
+- Put code, passwords or keys into a notes vault.
+- Write to memory if the user said "test" or "don't record anything".

@@ -11,7 +11,7 @@ It helps you think: separate facts from guesses, keep rival explanations, resear
 1. Copy this folder somewhere private — for example into your Obsidian vault. Keep one folder per person.
 2. Open it in Claude Code (`claude` in the folder, or the Code tab of the Claude desktop app) or in Codex.
 3. Say what bothers you, in any language. The agent fills `MEMORY`, `PATIENT FACTS` and the rest as you talk.
-4. At the end say "remember this" (or "sleep"): the agent integrates the conversation into memory.
+4. At the end say "remember this": the agent integrates the conversation into memory.
 
 ## Files
 
@@ -31,7 +31,7 @@ It helps you think: separate facts from guesses, keep rival explanations, resear
 
 In `.claude/skills/`, picked up by Claude Code automatically:
 
-- **sleep** — remember the conversation: integrate it into memory and keep memory small.
+- **remember** — remember the conversation: integrate it into memory and keep memory small. It runs **sleep**, the general memory skill, with the health rules on top.
 - **ask-questions** — the one to three questions that would most change the picture.
 - **research** — deep research: finds contradictions and non-obvious links in your own facts, turns them into questions, checks them in the medical literature.
 - **next-step** — the single best next step, by value of information, not by reflex.

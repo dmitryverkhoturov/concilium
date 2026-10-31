@@ -257,53 +257,102 @@ public static class Auth
     public static void Stop() { try { if (Pending) login!.Kill(true); } catch { } }
 }
 
-// After a conversation ends, a separate headless run of the sleep skill files it into memory.
-// It is not a child we wait on: closing the window must not cut it short.
+// After a conversation ends, a separate headless run of the remember skill files it into memory.
+// The window does not run it itself: it starts "Concilium.exe --remember <person> <ids>", a program of its own
+// that outlives the window, waits for Claude, checks which memory files changed, keeps a log and marks
+// the conversations as remembered only when that worked.
 public static class Dream
 {
-    public static bool Start(Person p, IList<string> ids, Action<bool>? done = null)
+    // Window side: start the helper. Raises done(true/false) on a background thread if the window is still there.
+    public static Process? Start(Person p, IList<string> ids, Action<bool>? done = null)
     {
-        var parts = new List<string>();
-        var stamps = new Dictionary<string, long>();
-        var infos = Sessions.List(p).ToDictionary(s => s.id);
-        foreach (var id in ids)
-        {
-            var conv = Sessions.Conversation(p, id);
-            if (conv.Count == 0) continue;
-            var at = infos.TryGetValue(id, out var s) ? s.at : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            stamps[id] = at;
-            parts.Add($"<conversation id=\"{id}\" date=\"{DateTimeOffset.FromUnixTimeMilliseconds(at):yyyy-MM-dd}\">\n" +
-                string.Join("\n\n", conv.Select(m => $"{(m.role == "user" ? "PERSON" : "AGENT")}: {m.text ?? $"[asked for: {m.skill}]"}")) +
-                "\n</conversation>");
-        }
-        if (parts.Count == 0) return false;
-        // Marked up front, so a pass started as the window closes is not repeated next time.
-        Store.MarkDreamed(p.id, stamps);
         try
         {
-            var proc = Process.Start(ClaudeProcess.StartInfo(p, ClaudeProcess.Args(p, null, persist: false, interactive: false), redirectOut: false))!;
-            var msg = new JsonObject { ["type"] = "user", ["message"] = new JsonObject { ["role"] = "user",
-                ["content"] = "/concilium:sleep\n\nConversations to consolidate:\n\n" + string.Join("\n\n", parts) } };
-            proc.StandardInput.WriteLine(msg.ToJsonString());
-            proc.StandardInput.Close();
+            var psi = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true };
+            psi.ArgumentList.Add("--remember"); psi.ArgumentList.Add(p.id); psi.ArgumentList.Add(string.Join(",", ids));
+            var proc = Process.Start(psi)!;
+            Store.SetRunning(p.id, proc.Id, ids);
             if (done != null)
             {
                 proc.EnableRaisingEvents = true;
-                proc.Exited += (_, _) =>
-                {
-                    var ok = proc.ExitCode == 0;
-                    if (!ok) Store.MarkDreamed(p.id, stamps.ToDictionary(kv => kv.Key, _ => 0L));
-                    done(ok);
-                };
+                proc.Exited += (_, _) => done(proc.ExitCode == 0);
             }
-            return true;
+            return proc;
+        }
+        catch (Exception e) { Paths.LogError(e); done?.Invoke(false); return null; }
+    }
+
+    // Helper side. Exit code 0 = remembered (or nothing new), 1 = failed.
+    public static int Run(string personId, IList<string> ids)
+    {
+        var p = Store.People().FirstOrDefault(x => x.id == personId);
+        if (p == null) return 1;
+        try
+        {
+            var parts = new List<string>();
+            var stamps = new Dictionary<string, long>();
+            var infos = Sessions.List(p).ToDictionary(s => s.id);
+            var dir = Sessions.ProjectDir(p.path);
+            foreach (var id in ids)
+            {
+                var conv = Sessions.Conversation(p, id);
+                if (conv.Count == 0) continue;
+                var at = infos.TryGetValue(id, out var s) ? s.at : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                stamps[id] = at;
+                var file = dir == null ? "" : $" file=\"{Path.Combine(dir, id + ".jsonl")}\"";
+                parts.Add($"<conversation id=\"{id}\" date=\"{DateTimeOffset.FromUnixTimeMilliseconds(at):yyyy-MM-dd}\"{file}>\n" +
+                    string.Join("\n\n", conv.Select(m => $"{(m.role == "user" ? "PERSON" : "AGENT")}: {m.text ?? $"[asked for: {m.skill}]"}")) +
+                    "\n</conversation>");
+            }
+            if (parts.Count == 0) { Store.Finish(personId, ids, stamps, null); return 0; }
+
+            var before = MemoryFiles(p.path);
+            var psi = ClaudeProcess.StartInfo(p, ClaudeProcess.Args(p, null, persist: false, interactive: false));
+            var proc = Process.Start(psi)!;
+            var msg = new JsonObject { ["type"] = "user", ["message"] = new JsonObject { ["role"] = "user",
+                ["content"] = "/concilium:remember\n\nConversations to consolidate:\n\n" + string.Join("\n\n", parts) } };
+            proc.StandardInput.WriteLine(msg.ToJsonString());
+            proc.StandardInput.Close();
+            var errTask = proc.StandardError.ReadToEndAsync();
+            string? result = null; var failed = false;
+            while (proc.StandardOutput.ReadLine() is { } line)
+            {
+                try
+                {
+                    var o = JsonNode.Parse(line);
+                    if (o?["type"]?.GetValue<string>() != "result") continue;
+                    result = o["result"]?.GetValue<string>();
+                    failed = o["is_error"]?.GetValue<bool>() == true;
+                }
+                catch { }
+            }
+            proc.WaitForExit();
+            var err = errTask.Result;
+
+            var after = MemoryFiles(p.path);
+            var changed = after.Where(kv => !before.TryGetValue(kv.Key, out var t) || t != kv.Value).Select(kv => Path.GetRelativePath(p.path, kv.Key)).ToList();
+            var ok = proc.ExitCode == 0 && !failed && result != null;
+            var person = result == null ? null : System.Text.RegularExpressions.Regex.Match(result, @"<person>\s*(.*?)\s*</person>", System.Text.RegularExpressions.RegexOptions.Singleline) is { Success: true } m ? m.Groups[1].Value.Trim() : null;
+            // The files are the proof: a pass that changed nothing noted nothing, whatever it says.
+            var note = !ok ? null : changed.Count == 0 ? Strings.T.NothingNew : person ?? Strings.T.Noted;
+            Paths.LogRemember($"{p.name} [{string.Join(", ", ids)}] exit {proc.ExitCode}{(failed ? " error" : "")}\n" +
+                $"changed: {(changed.Count == 0 ? "nothing" : string.Join(", ", changed))}\n" +
+                (err.Trim().Length > 0 ? $"stderr: {err.Trim()}\n" : "") + $"{result ?? "(no result)"}\n");
+            if (!ok) { Store.Finish(personId, ids, null, null); return 1; }
+            Store.Finish(personId, ids, stamps, note);
+            return 0;
         }
         catch (Exception e)
         {
-            Paths.LogError(e);
-            Store.MarkDreamed(p.id, stamps.ToDictionary(kv => kv.Key, _ => 0L));
-            done?.Invoke(false);
-            return true;
+            Paths.LogRemember($"{p.name} [{string.Join(", ", ids)}] crashed: {e}\n");
+            Store.Finish(personId, ids, null, null);
+            return 1;
         }
     }
+
+    // Memory is the folder's .md files (not the documents, not the skills): path → last write time.
+    static Dictionary<string, DateTime> MemoryFiles(string folder) =>
+        Directory.EnumerateFiles(folder, "*.md", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(Path.DirectorySeparatorChar + ".claude" + Path.DirectorySeparatorChar))
+            .ToDictionary(f => f, File.GetLastWriteTimeUtc);
 }

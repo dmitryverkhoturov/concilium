@@ -28,7 +28,7 @@ public partial class MainWindow : Window
     readonly HashSet<string> writing = new(), warned = new();
     // Screenshots never spend tokens on memory.
     static readonly bool Shot = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
-    readonly DispatcherTimer idle = new() { Interval = TimeSpan.FromMinutes(20) };
+    readonly DispatcherTimer idle = new() { Interval = TimeSpan.FromMinutes(15) };
     Person? Cur => people.FirstOrDefault(p => p.id == pid);
     static Strings T => Strings.T;
 
@@ -130,6 +130,7 @@ public partial class MainWindow : Window
         ApplyI18n();
         authed = Paths.HasClaude && Auth.LoggedIn();
         people = Store.People();
+        try { Store.Baseline(people); } catch (Exception e) { Paths.LogError(e); }
         if (Cur == null) pid = people.FirstOrDefault()?.id ?? "";
         RenderPeople();
         if (!authed) { RenderLogin(); return; }
@@ -202,7 +203,10 @@ public partial class MainWindow : Window
 
     void SelectPerson(string id)
     {
-        EndConversation();
+        // Switching people does not start a memory pass: the conversation is remembered when the window closes,
+        // after a quiet spell, or on the next start.
+        dirty = false;
+        idle.Stop();
         pid = id;
         sid = null;
         SaveUi();
@@ -318,13 +322,15 @@ public partial class MainWindow : Window
     async void OpenSession(string id)
     {
         if (streaming || Cur is not { } p) return;
-        if (id != sid) EndConversation();
+        if (id != sid) { dirty = false; idle.Stop(); }
         sid = id;
         Prewarm(p, id);
         ClearMessages();
         var msgs = await Task.Run(() => Sessions.Conversation(p, id));
         if (sid != id) return;
         foreach (var m in msgs) AddMsg(m);
+        // What the last memory pass took from this conversation, if it came after its last message.
+        if (Store.Note(p.id, id) is { } note && Sessions.List(p).FirstOrDefault(x => x.id == id) is { } info && note.at >= info.at) AddNote(note.text);
         ScrollEnd(true);
         LoadSessions();
     }
@@ -339,7 +345,7 @@ public partial class MainWindow : Window
         LoadSessions();
     }
 
-    // A conversation "ends" when the person leaves it. Then memory is consolidated in the background.
+    // A conversation "ends" with "New conversation" or a quiet spell. Then memory is consolidated in the background.
     void EndConversation()
     {
         if (dirty && sid != null && Cur is { } p) StartDream(p, new[] { sid });
@@ -360,6 +366,22 @@ public partial class MainWindow : Window
     async void CatchUp(Person p)
     {
         if (Shot || !authed) return;
+        // A pass started by a window that has since closed may still be writing: wait for it instead of starting another.
+        if (memory.GetValueOrDefault(p.id).status != "running" && Store.Running(p.id) is { } run)
+        {
+            memory[p.id] = ("running", DateTime.Now);
+            writing.UnionWith(run);
+            ShowMemory();
+            try
+            {
+                var proc = System.Diagnostics.Process.GetProcessById(Store.RunningProc(p.id));
+                proc.EnableRaisingEvents = true;
+                proc.Exited += (_, _) => Dispatcher.BeginInvoke(() => Remembered(p, run));
+                if (proc.HasExited) Remembered(p, run);
+            }
+            catch { Remembered(p, run); }
+            return;
+        }
         var busy = writing.ToHashSet();
         var ids = await Task.Run(() => Unsaved(p, busy));
         if (ids.Count > 0) StartDream(p, ids);
@@ -378,13 +400,23 @@ public partial class MainWindow : Window
         writing.UnionWith(ids);
         ShowMemory();
         if (p.id == pid) LoadSessions();
-        var started = Dream.Start(p, ids, ok => Dispatcher.BeginInvoke(() =>
+        if (Dream.Start(p, ids, _ => Dispatcher.BeginInvoke(() => Remembered(p, ids))) == null)
         {
-            memory[p.id] = (ok ? "done" : "error", DateTime.Now);
+            memory[p.id] = ("error", DateTime.Now);
             Dreamt(p, ids);
-            if (ok && p.id == pid) LoadGraph();
-        }));
-        if (!started) { memory[p.id] = ("nothing", DateTime.Now); Dreamt(p, ids); }
+        }
+    }
+
+    // A pass ended (this window's or an earlier one's): show its outcome, and its note under the open conversation.
+    void Remembered(Person p, IList<string> ids)
+    {
+        if (!writing.Overlaps(ids)) return;
+        var ok = Store.Last(p.id)?.ok == true;
+        memory[p.id] = (ok ? "done" : "error", DateTime.Now);
+        Dreamt(p, ids);
+        if (!ok || p.id != pid) return;
+        LoadGraph();
+        if (sid != null && ids.Contains(sid) && !streaming && Store.Note(p.id, sid) is { } note) { AddNote(note.text); ScrollEnd(); }
     }
 
     void Dreamt(Person p, IList<string> ids)
@@ -531,7 +563,7 @@ public partial class MainWindow : Window
         w.Children.Add(new TextBlock { Text = T.HelloSub, FontSize = 17, Foreground = Brush("Muted"), Margin = new Thickness(0, 0, 0, 22) });
         var cards = new WrapPanel();
         // "Remember" is not a button: memory is kept by itself; a small link under the conversations stays for those who want it.
-        foreach (var a in T.Actions.Where(a => a.skill != "sleep"))
+        foreach (var a in T.Actions.Where(a => a.skill != "remember"))
         {
             var sp = new StackPanel();
             sp.Children.Add(new Shp { Data = Geometry.Parse(a.icon), Stroke = Brush("Accent"), StrokeThickness = 1.6, Width = 30, Height = 30, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 12) });
@@ -548,7 +580,7 @@ public partial class MainWindow : Window
     void RenderActions()
     {
         Actions.Children.Clear();
-        foreach (var a in T.Actions.Where(a => a.skill != "sleep"))
+        foreach (var a in T.Actions.Where(a => a.skill != "remember"))
         {
             var b = new Button { Content = IconText(a.icon, a.title, Brush("Accent"), 15), Style = (Style)FindResource("Chip"), ToolTip = a.sub };
             b.Click += (_, _) => Send(null, a.skill);
@@ -608,6 +640,21 @@ public partial class MainWindow : Window
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Document = Markdown.Render(md, null, 15.5) };
         Messages.Children.Add(rtb);
         return rtb;
+    }
+
+    // A quiet grey line, not a message: what memory took from the conversation.
+    void AddNote(string text)
+    {
+        var line = new DockPanel { Margin = new Thickness(0, 4, 0, 10), HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = 620 };
+        if (T.Actions.FirstOrDefault(x => x.skill == "remember") is { } a)
+        {
+            var icon = new Shp { Data = Geometry.Parse(a.icon), Stroke = Brush("Muted"), StrokeThickness = 1.6, Width = 13, Height = 13, Stretch = Stretch.Uniform,
+                Margin = new Thickness(0, 3, 8, 0), VerticalAlignment = VerticalAlignment.Top };
+            DockPanel.SetDock(icon, Dock.Left);
+            line.Children.Add(icon);
+        }
+        line.Children.Add(new TextBlock { Text = text, FontSize = 13, Foreground = Brush("Muted"), TextWrapping = TextWrapping.Wrap });
+        Messages.Children.Add(line);
     }
 
     void AddError(string text) =>
@@ -786,8 +833,8 @@ public partial class MainWindow : Window
             if (needsLogin) { authed = false; DropLive(); Dispatcher.BeginInvoke(DispatcherPriority.Background, RenderLogin); }
         }
         ScrollEnd();
-        dirty = t.skill != "sleep";
-        if (ok && t.skill == "sleep" && sid != null && Cur is { } cur)
+        dirty = t.skill != "remember";
+        if (ok && t.skill == "remember" && sid != null && Cur is { } cur)
             Store.MarkDreamed(cur.id, new Dictionary<string, long> { [sid] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
         // A long conversation makes the agent worse well before the window is full: offer a fresh one at 30%.
         if (ok && t.proc is { } cp && sid != null && cp.Context > cp.Window * 0.3 && warned.Add(sid)) AddLongTalk();
@@ -916,8 +963,12 @@ public partial class MainWindow : Window
         AddAttachments(files);
     }
 
-    void Input_TextChanged(object s, TextChangedEventArgs e) =>
+    void Input_TextChanged(object s, TextChangedEventArgs e)
+    {
         Placeholder.Visibility = Input.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // Typing means the conversation goes on: the quiet spell before remembering starts over.
+        if (dirty) { idle.Stop(); idle.Start(); }
+    }
 
     // ---------- map and notes ----------
 
@@ -1033,9 +1084,12 @@ public partial class MainWindow : Window
         SaveUi();
         authPoll.Stop();
         Auth.Stop();
-        // The memory pass outlives the window: it is a separate program run.
-        // If a pass is already writing this folder, the next start catches the conversation up instead.
-        if (dirty && sid != null && Cur is { } p && memory.GetValueOrDefault(p.id).status != "running") Dream.Start(p, new[] { sid });
+        // Closing the window remembers what is not remembered yet, for everyone: the pass is a program of its own and
+        // outlives the window. If a pass is already writing a folder, the next start catches that person up instead.
+        if (!Shot && authed)
+            foreach (var p in people)
+                if (memory.GetValueOrDefault(p.id).status != "running" && Store.Running(p.id) == null && Unsaved(p, writing) is { Count: > 0 } ids)
+                    Dream.Start(p, ids);
         if (liveTask is { IsCompletedSuccessfully: true } t) t.Result.Dispose(); else DropLive();
         base.OnClosing(e);
     }

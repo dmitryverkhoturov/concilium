@@ -120,7 +120,7 @@ public static class Sessions
     }
 
     // Skill buttons are stored as slash commands; show them as the button the person pressed.
-    static readonly Dictionary<string, string> Renamed = new() { ["update-memory"] = "sleep", ["hypotheses"] = "research" };
+    static readonly Dictionary<string, string> Renamed = new() { ["update-memory"] = "remember", ["sleep"] = "remember", ["hypotheses"] = "research" };
     static Msg? Pretty(string t)
     {
         var m = Regex.Match(t, @"<command-name>/?(?:concilium:|health-agent:)?([\w-]+)</command-name>");
