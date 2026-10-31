@@ -197,6 +197,34 @@ public static class Installer
         ClaudeProcess.CleanEnv(psi.Environment);
         try { run = Process.Start(psi); } catch (Exception e) { Paths.LogError(e); }
     }
+
+    // Anthropic's installer puts claude.exe into ~/.local/bin and only advises adding it to PATH.
+    // The app finds it there anyway; PATH is for the agent's own terminal and for anyone typing "claude".
+    // Written straight to the registry: Environment.SetEnvironmentVariable would expand "%USERPROFILE%"-style entries
+    // of the person's PATH for good. Once per run, off the window's thread (the change broadcast can hang on a busy window).
+    static int pathDone;
+    public static void EnsurePath()
+    {
+        if (Interlocked.Exchange(ref pathDone, 1) == 1) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                var bin = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin");
+                if (!File.Exists(Path.Combine(bin, "claude.exe"))) return;
+                using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("Environment");
+                var raw = key.GetValue("Path", "", Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames) as string ?? "";
+                if (raw.Split(';').Any(p => string.Equals(Environment.ExpandEnvironmentVariables(p.Trim()).TrimEnd('\\'), bin, StringComparison.OrdinalIgnoreCase))) return;
+                key.SetValue("Path", raw.Length == 0 ? bin : raw.TrimEnd(';') + ";" + bin, Microsoft.Win32.RegistryValueKind.ExpandString);
+                SendMessageTimeout((IntPtr)0xffff, 0x1A, IntPtr.Zero, "Environment", 2, 5000, out _);
+                Environment.SetEnvironmentVariable("Path", Environment.GetEnvironmentVariable("Path") + ";" + bin);
+            }
+            catch (Exception e) { Paths.LogError(e); }
+        });
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, string lParam, uint flags, uint timeout, out IntPtr result);
 }
 
 // Signing in without a terminal: Claude's own sign-in opens the browser, the person presses "Authorize".
@@ -249,9 +277,35 @@ public static class Auth
         new Thread(() => Read(login.StandardError)) { IsBackground = true }.Start();
     }
 
-    public static void Code(string code)
+    // Without a terminal the CLI signs in by code: the page shows "code#state", the CLI reads it from stdin.
+    // People paste whatever they copied: the code with spaces or line breaks, without the "#state" half,
+    // or the whole address of the page. All of these become "code#state".
+    public static string Normalize(string raw)
     {
-        try { if (Pending) { login!.StandardInput.WriteLine(code); login.StandardInput.Flush(); } } catch { }
+        var t = System.Text.RegularExpressions.Regex.Replace(raw, @"\s+", "");
+        string? Param(string text, string key) =>
+            System.Text.RegularExpressions.Regex.Match(text, $@"[?&#]{key}=([^&#]+)") is { Success: true } m ? Uri.UnescapeDataString(m.Groups[1].Value) : null;
+        if (t.StartsWith("http", StringComparison.OrdinalIgnoreCase) && Param(t, "code") is { } c && !t.Contains("/oauth/authorize"))
+            t = c + (Param(t, "state") is { } st ? "#" + st : "");
+        if (!t.Contains('#') && Url != null && Param(Url, "state") is { } state) t += "#" + state;
+        return t;
+    }
+
+    // The address of the sign-in page itself, pasted back by mistake.
+    public static bool IsPageLink(string raw) => raw.Contains("/oauth/authorize");
+
+    public static int Rejected { get { lock (output) return System.Text.RegularExpressions.Regex.Matches(output.ToString(), "Invalid code", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count; } }
+
+    public static bool Code(string raw)
+    {
+        try
+        {
+            if (!Pending) return false;
+            login!.StandardInput.WriteLine(Normalize(raw));
+            login.StandardInput.Flush();
+            return true;
+        }
+        catch (Exception e) { Paths.LogError(e); return false; }
     }
 
     public static void Stop() { try { if (Pending) login!.Kill(true); } catch { } }

@@ -457,13 +457,18 @@ public partial class MainWindow : Window
         Actions.Visibility = Visibility.Collapsed;
         var w = new StackPanel { Margin = new Thickness(0, 60, 0, 0), MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left };
         w.Children.Add(new TextBlock { Text = T.LoginTitle, FontFamily = (FontFamily)FindResource("Serif"), FontSize = 34, Margin = new Thickness(0, 0, 0, 14) });
-        w.Children.Add(new TextBlock { Text = T.LoginText, FontSize = 17, Foreground = Brush("Muted"), Margin = new Thickness(0, 0, 0, 24) });
-        var btn = new Button { Content = T.LoginBtn, Style = (Style)FindResource("Primary"), FontSize = 18, Padding = new Thickness(28, 14, 28, 14), HorizontalAlignment = HorizontalAlignment.Left, Tag = "18" };
+        // Claude Code is Anthropic's program: say so and ask before installing it, then sign-in follows by itself.
+        var install = !Paths.HasClaude && !Installer.Pending;
+        if ((install ? T.InstallText : T.LoginText) is { Length: > 0 } intro)
+            w.Children.Add(new TextBlock { Text = intro, FontSize = 17, Foreground = Brush("Muted"), Margin = new Thickness(0, 0, 0, 24), TextWrapping = TextWrapping.Wrap });
+        var btn = new Button { Content = install ? T.InstallBtn : T.LoginBtn, Style = (Style)FindResource("Primary"), FontSize = 18, Padding = new Thickness(28, 14, 28, 14), HorizontalAlignment = HorizontalAlignment.Left, Tag = "18" };
         w.Children.Add(btn);
         var pending = new StackPanel { Visibility = Visibility.Collapsed };
         var wait = new TextBlock { Text = T.LoginWaiting, FontSize = 17 };
         pending.Children.Add(wait);
-        var fallback = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 18, 0, 0) };
+        var err = new TextBlock { Foreground = Brush("Warn"), Margin = new Thickness(0, 14, 0, 0) };
+        var startedAt = DateTime.Now;
+        var fallback = new StackPanel { Margin = new Thickness(0, 18, 0, 0) };
         var again = new Button { Content = T.LoginAgain, Style = (Style)FindResource("Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 4, 0, 4) };
         again.Click += (_, _) => { if (Auth.Url is { } u) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(u) { UseShellExecute = true }); };
         fallback.Children.Add(again);
@@ -474,15 +479,28 @@ public partial class MainWindow : Window
         var code = new TextBox { Style = (Style)FindResource("Field") };
         codeRow.Children.Add(codeBtn);
         codeRow.Children.Add(code);
-        codeBtn.Click += (_, _) => { if (code.Text.Trim().Length > 0) Auth.Code(code.Text.Trim()); };
+        var rejected = 0;
+        void Submit()
+        {
+            var text = code.Text.Trim();
+            if (text.Length == 0) return;
+            if (Auth.IsPageLink(text)) { err.Text = T.LoginPageLink; code.Text = ""; return; }
+            rejected = Auth.Rejected;
+            if (!Auth.Pending) { Auth.Start(); rejected = 0; err.Text = T.LoginExpired; code.Text = ""; startedAt = DateTime.Now; return; }
+            err.Text = "";
+            wait.Text = Auth.Code(text) ? T.LoginChecking : T.LoginFailed;
+        }
+        codeBtn.Click += (_, _) => Submit();
+        code.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Submit(); e.Handled = true; } };
+        // A paste is the code: send it at once, nothing else to press.
+        // A second paste replaces the first instead of sticking to it.
+        DataObject.AddPastingHandler(code, (_, _) => { code.Clear(); Dispatcher.BeginInvoke(DispatcherPriority.Background, Submit); });
         fallback.Children.Add(codeRow);
         pending.Children.Add(fallback);
         w.Children.Add(pending);
-        var err = new TextBlock { Foreground = Brush("Warn"), Margin = new Thickness(0, 14, 0, 0) };
         w.Children.Add(err);
         Messages.Children.Add(w);
 
-        var startedAt = DateTime.Now;
         void ShowPending() { btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now; }
         // One button: if Claude Code is not on this computer yet, it is installed first, then sign-in starts by itself.
         void Begin()
@@ -509,6 +527,7 @@ public partial class MainWindow : Window
                 pending.Visibility = Visibility.Collapsed;
                 return;
             }
+            Installer.EnsurePath();
             // Just installed: go on to sign-in.
             if (!Auth.Pending && !Auth.LoggedIn() && !Auth.Failed) { wait.Text = T.LoginWaiting; startedAt = DateTime.Now; Auth.Start(); return; }
             if (Auth.LoggedIn())
@@ -520,8 +539,8 @@ public partial class MainWindow : Window
                 SelectPerson(pid);
                 return;
             }
-            // Claude opens the sign-in page itself. The fallback link and code box appear only if nothing happened for a while.
-            if (DateTime.Now - startedAt > TimeSpan.FromSeconds(20)) fallback.Visibility = Visibility.Visible;
+            // The CLI answers a wrong code on its output; say so instead of staying silent.
+            if (Auth.Rejected > rejected) { rejected = Auth.Rejected; err.Text = T.LoginBadCode; wait.Text = T.LoginWaiting; code.SelectAll(); code.Focus(); }
             if (Auth.Failed)
             {
                 authPoll.Stop();

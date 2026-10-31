@@ -13,7 +13,7 @@ public class Strings
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
         Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, Picture,
-        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, Installing, InstallFailed, NameRequired, FolderMissing;
+        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, Installing, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
     public required Action4[] Actions;
@@ -38,10 +38,10 @@ public class Strings
         MemBtn = "Запомнить сейчас", Writing = "запоминаю", NothingNew = "Нового для памяти не было.", Noted = "Главное из разговора запомнил.", Recalling = "Вспоминаю прошлый разговор…",
         LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", Picture = "Снимок",
         LoginTitle = "Подключим помощника",
-        LoginText = "Нажмите кнопку — откроется страница Claude. Войдите в свой аккаунт и нажмите «Разрешить» (Authorize). Потом вернитесь в это окно.",
-        LoginBtn = "Войти через Claude", LoginWaiting = "Жду подтверждения на странице Claude…", LoginAgain = "Открыть страницу ещё раз",
-        LoginCode = "Если страница показала код — вставьте его сюда:", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти. Попробуйте ещё раз.",
-        Installing = "Устанавливаю помощника Claude. Это займёт минуту-две…", InstallFailed = "Не получилось установить помощника. Проверьте интернет и нажмите ещё раз.",
+        LoginText = "",
+        LoginBtn = "Войти через Claude", LoginWaiting = "", LoginAgain = "Открыть страницу ещё раз",
+        LoginCode = "Код со страницы", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти", LoginChecking = "Проверяю…", LoginBadCode = "Код не подошёл", LoginPageLink = "Нужен код со страницы", LoginExpired = "Открыл страницу заново",
+        Installing = "Устанавливаю…", InstallText = "", InstallBtn = "Установить Claude Code", InstallFailed = "Не установилось. Проверьте интернет",
         NameRequired = "Напишите имя.", FolderMissing = "Такой папки нет.",
         Ago = m => m < 1 ? "только что" : m < 60 ? $"{m} мин назад" : m < 1440 ? $"{Math.Round(m / 60.0)} ч назад" : $"{Math.Round(m / 1440.0)} дн назад",
         Actions = new Action4[]
@@ -72,10 +72,10 @@ public class Strings
         MemBtn = "Remember now", Writing = "remembering", NothingNew = "Nothing new to note.", Noted = "Noted what mattered from this talk.", Recalling = "Recalling the last conversation…",
         LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", Picture = "Picture",
         LoginTitle = "Let's connect the assistant",
-        LoginText = "Press the button — a Claude page will open. Sign in to your account and press \"Authorize\". Then come back to this window.",
-        LoginBtn = "Sign in with Claude", LoginWaiting = "Waiting for confirmation on the Claude page…", LoginAgain = "Open the page again",
-        LoginCode = "If the page shows a code, paste it here:", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed. Please try again.",
-        Installing = "Installing the Claude assistant. This takes a minute or two…", InstallFailed = "Could not install the assistant. Check the internet connection and press again.",
+        LoginText = "",
+        LoginBtn = "Sign in with Claude", LoginWaiting = "", LoginAgain = "Open the page again",
+        LoginCode = "Code from the page", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed", LoginChecking = "Checking…", LoginBadCode = "Wrong code", LoginPageLink = "Paste the code from the page", LoginExpired = "Opened the page again",
+        Installing = "Installing…", InstallText = "", InstallBtn = "Install Claude Code", InstallFailed = "Could not install. Check the internet",
         NameRequired = "Please enter a name.", FolderMissing = "That folder does not exist.",
         Ago = m => m < 1 ? "just now" : m < 60 ? $"{m} min ago" : m < 1440 ? $"{Math.Round(m / 60.0)} h ago" : $"{Math.Round(m / 1440.0)} d ago",
         Actions = new Action4[]
