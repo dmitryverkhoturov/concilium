@@ -235,30 +235,58 @@ public static class Installer
         Interlocked.Exchange(ref total, m?["size"]?.GetValue<long>() ?? 0);
         Directory.CreateDirectory(Downloads);
         var bin = Path.Combine(Downloads, $"claude-{v}-win32-x64.exe");
-        using (var resp = await http.GetAsync($"{Releases}/{v}/win32-x64/claude.exe", System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
+        // A file left by an earlier attempt that already matches the manifest is not downloaded again.
+        if (!Matches(bin, sum))
         {
-            resp.EnsureSuccessStatusCode();
-            if (total == 0 && resp.Content.Headers.ContentLength is { } len) Interlocked.Exchange(ref total, len);
-            await using var src = await resp.Content.ReadAsStreamAsync();
-            await using var dst = File.Create(bin);
-            var buf = new byte[1 << 16];
-            for (int n; (n = await src.ReadAsync(buf)) > 0;) { await dst.WriteAsync(buf.AsMemory(0, n)); Interlocked.Add(ref done, n); }
+            using (var resp = await http.GetAsync($"{Releases}/{v}/win32-x64/claude.exe", System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
+            {
+                resp.EnsureSuccessStatusCode();
+                if (total == 0 && resp.Content.Headers.ContentLength is { } len) Interlocked.Exchange(ref total, len);
+                await using var src = await resp.Content.ReadAsStreamAsync();
+                await using var dst = File.Create(bin);
+                var buf = new byte[1 << 16];
+                // A connection that stops sending is an error after a minute, not "Installing…" forever.
+                for (int n; ;)
+                {
+                    using var stall = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+                    if ((n = await src.ReadAsync(buf, stall.Token)) == 0) break;
+                    await dst.WriteAsync(buf.AsMemory(0, n)); Interlocked.Add(ref done, n);
+                }
+            }
+            if (!Matches(bin, sum)) throw new Exception("checksum mismatch");
         }
+        else Interlocked.Exchange(ref done, total);
+        // "claude install" without a version downloads the same ~300 MB a second time, its own way and without progress;
+        // on one computer that download stalled at 0 bytes. So the checked file is put where install would put it
+        // (~/.local/share/claude/versions/<v> and ~/.local/bin/claude.exe); install then finds it there and only sets up the rest.
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var version = Path.Combine(home, ".local", "share", "claude", "versions", v);
+        var launcher = Path.Combine(home, ".local", "bin", "claude.exe");
+        foreach (var to in new[] { version, launcher })
+            if (!Matches(to, sum)) { Directory.CreateDirectory(Path.GetDirectoryName(to)!); File.Copy(bin, to, true); }
+        var psi = new ProcessStartInfo(launcher) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        psi.ArgumentList.Add("install"); psi.ArgumentList.Add(v);
+        ClaudeProcess.CleanEnv(psi.Environment);
+        using var p = Process.Start(psi)!;
+        p.StandardInput.Close();
+        var log = p.StandardOutput.ReadToEndAsync();
+        var errs = p.StandardError.ReadToEndAsync();
+        // Claude Code is already in place; install only adds its own settings. If it hangs, it does not hold the person up.
+        using (var limit = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
+            try { await p.WaitForExitAsync(limit.Token); } catch (OperationCanceledException) { try { p.Kill(true); } catch { } }
+        if (!p.HasExited || p.ExitCode != 0) Paths.LogError(new Exception($"claude install: {(p.HasExited ? "exit " + p.ExitCode : "timed out")} {(log.IsCompleted ? log.Result : "")} {(errs.IsCompleted ? errs.Result : "")}"));
+        try { File.Delete(bin); } catch { }
+    }
+
+    static bool Matches(string file, string sum)
+    {
         try
         {
-            string actual;
-            using (var f = File.OpenRead(bin)) actual = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(f));
-            if (!actual.Equals(sum, StringComparison.OrdinalIgnoreCase)) throw new Exception("checksum mismatch");
-            var psi = new ProcessStartInfo(bin) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-            psi.ArgumentList.Add("install");
-            ClaudeProcess.CleanEnv(psi.Environment);
-            using var p = Process.Start(psi)!;
-            var log = p.StandardOutput.ReadToEndAsync();
-            var errs = p.StandardError.ReadToEndAsync();
-            await p.WaitForExitAsync();
-            if (p.ExitCode != 0) throw new Exception($"claude install exited {p.ExitCode}: {await log} {await errs}");
+            if (!File.Exists(file)) return false;
+            using var f = File.OpenRead(file);
+            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(f)).Equals(sum, StringComparison.OrdinalIgnoreCase);
         }
-        finally { try { File.Delete(bin); } catch { } }
+        catch { return false; }
     }
 
     // Anthropic's installer puts claude.exe into ~/.local/bin and only advises adding it to PATH.
