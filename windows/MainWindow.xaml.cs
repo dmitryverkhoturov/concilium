@@ -562,7 +562,8 @@ public partial class MainWindow : Window
             btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now;
             wait.Text = text; fallback.Visibility = page ? Visibility.Visible : Visibility.Collapsed;
         }
-        void ShowButton(string error) { btn.Visibility = Visibility.Visible; pending.Visibility = Visibility.Collapsed; err.Text = error; }
+        // The label follows what the button will do now: once Claude Code is installed, a failed sign-in offers sign-in, not install.
+        void ShowButton(string error) { btn.Content = Paths.HasClaude ? T.LoginBtn : T.InstallBtn; btn.Visibility = Visibility.Visible; pending.Visibility = Visibility.Collapsed; err.Text = error; }
         // One button: if Claude Code is not on this computer yet, it is installed first, then sign-in starts by itself.
         async void Begin()
         {
