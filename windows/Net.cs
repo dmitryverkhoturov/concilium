@@ -41,6 +41,8 @@ public static class Updater
 {
     const string Repo = "dmitryverkhoturov/concilium";
     static string Dir => Path.Combine(Paths.Data, "update");
+    // What the window says about it: a newer version is downloading, or is downloaded and goes in when the window closes.
+    public static string? State { get; private set; }
     static string Seen => Path.Combine(Paths.Data, "version.txt");
 
     public static Version Current
@@ -72,23 +74,25 @@ public static class Updater
             var tag = rel["tag_name"]!.GetValue<string>().TrimStart('v');
             if (!Version.TryParse(tag, out var latest) || latest <= Current) return;
             var target = Path.Combine(Dir, tag);
-            if (File.Exists(Path.Combine(target, "ready"))) return;
+            if (File.Exists(Path.Combine(target, "ready"))) { State = "ready"; return; }
             var assets = (rel["assets"] as JsonArray ?? new()).Select(a => (name: a!["name"]!.GetValue<string>(), url: a["browser_download_url"]!.GetValue<string>())).ToList();
             var zip = assets.FirstOrDefault(a => a.name.EndsWith("-portable.zip"));
             if (zip.url == null) zip = assets.FirstOrDefault(a => a.name.StartsWith("Concilium-") && a.name.EndsWith("-win-x64.zip"));
             if (zip.url == null) return;
             Directory.CreateDirectory(Dir);
+            State = "downloading";
             var file = Path.Combine(Dir, tag + ".zip");
             using (var s = await http.GetStreamAsync(zip.url))
             using (var f = File.Create(file)) await s.CopyToAsync(f);
             if (Directory.Exists(target)) Directory.Delete(target, true);
             ZipFile.ExtractToDirectory(file, target);
             File.Delete(file);
-            if (!File.Exists(Path.Combine(target, "Concilium", "Concilium.exe"))) { Directory.Delete(target, true); return; }
+            if (!File.Exists(Path.Combine(target, "Concilium", "Concilium.exe"))) { Directory.Delete(target, true); State = null; return; }
             File.WriteAllText(Path.Combine(target, "ready"), "");
+            State = "ready";
             foreach (var old in Directory.GetDirectories(Dir).Where(d => d != target)) try { Directory.Delete(old, true); } catch { }
         }
-        catch (Exception e) { Paths.LogError("update: " + e.Message); }
+        catch (Exception e) { State = null; Paths.LogError("update: " + e.Message); }
     }
 
     // Window closing: hand the copying to a hidden PowerShell that waits for every Concilium running from this folder.

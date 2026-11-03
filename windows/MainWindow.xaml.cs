@@ -140,6 +140,9 @@ public partial class MainWindow : Window
         // Snapshots do not update, unless a test pretends to be an older version (CONCILIUM_VERSION).
         var updates = !Shot || Environment.GetEnvironmentVariable("CONCILIUM_VERSION") != null;
         if (updates) _ = Updater.Check();
+        ShowUpdate();
+        updatePoll.Tick += (_, _) => ShowUpdate();
+        updatePoll.Start();
         if (!authed) { RenderLogin(); return; }
         SelectPerson(pid);
         App.Mark("person selected");
@@ -259,6 +262,7 @@ public partial class MainWindow : Window
 
     void RenderAddPerson()
     {
+        Chrome(Shown.Count > 0);
         ClearMessages();
         string? folder = null;
         var w = new StackPanel { Margin = new Thickness(0, 40, 0, 0), MaxWidth = 520, HorizontalAlignment = HorizontalAlignment.Left };
@@ -480,11 +484,31 @@ public partial class MainWindow : Window
 
     Version? updated;
 
+    // One line in the title bar, on every screen: the version just installed, or a newer one on its way.
+    readonly DispatcherTimer updatePoll = new() { Interval = TimeSpan.FromSeconds(2) };
+    void ShowUpdate()
+    {
+        UpdateNote.Text = Updater.State switch
+        {
+            "downloading" => T.UpdateLoading,
+            "ready" => T.UpdateReady,
+            _ => updated != null ? string.Format(T.Updated, updated) : "",
+        };
+        if (Updater.State == "ready") updatePoll.Stop();
+    }
+
+    // Sign-in and the very first person: nothing to talk to yet, so no conversations, input box or map around it.
+    void Chrome(bool on)
+    {
+        LeftBox.Visibility = Composer.Visibility = MapBtn.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        LeftCol.Width = new GridLength(on ? 240 : 0);
+        PanelBox.Visibility = on && panelOpen ? Visibility.Visible : Visibility.Collapsed;
+        PanelCol.Width = new GridLength(on && panelOpen ? PanelWidth : 0);
+    }
+
     void ShowMemory()
     {
         Memory.Children.Clear();
-        if (updated != null)
-            Memory.Children.Add(new TextBlock { Text = string.Format(T.Updated, updated), FontSize = 12.5, Foreground = Brush("Muted"), Margin = new Thickness(6, 0, 0, 4) });
         if (Cur is not { } p || !authed) return;
         var (status, at) = memory.GetValueOrDefault(p.id, ("idle", DateTime.Now));
         if (T.Mem.TryGetValue(status, out var label))
@@ -508,6 +532,7 @@ public partial class MainWindow : Window
 
     void RenderLogin()
     {
+        Chrome(false);
         ClearMessages();
         Actions.Visibility = Visibility.Collapsed;
         var w = new StackPanel { Margin = new Thickness(0, 60, 0, 0), MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left };
@@ -643,6 +668,7 @@ public partial class MainWindow : Window
         if (!authed) { RenderLogin(); return; }
         ClearMessages();
         var w = new StackPanel { Margin = new Thickness(0, 50, 0, 0), Tag = "welcome" };
+        Chrome(Shown.Count > 0);
         if (Shown.Count == 0)
         {
             w.Children.Add(new TextBlock { Text = T.Hello(""), FontFamily = (FontFamily)FindResource("Serif"), FontSize = 36, Margin = new Thickness(0, 0, 0, 12) });
