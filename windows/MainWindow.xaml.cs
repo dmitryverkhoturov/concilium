@@ -29,7 +29,8 @@ public partial class MainWindow : Window
     // Screenshots never spend tokens on memory.
     static readonly bool Shot = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
     readonly DispatcherTimer idle = new() { Interval = TimeSpan.FromMinutes(15) };
-    Person? Cur => people.FirstOrDefault(p => p.id == pid);
+    List<Person> Shown => people.Where(p => !p.hidden).ToList();
+    Person? Cur => Shown.FirstOrDefault(p => p.id == pid);
     static Strings T => Strings.T;
 
     record Ui(string pid = "", bool panel = true);
@@ -133,7 +134,7 @@ public partial class MainWindow : Window
         authed = Paths.HasClaude && Auth.LoggedIn();
         people = Store.People();
         try { Store.Baseline(people); } catch (Exception e) { Paths.LogError(e); }
-        if (Cur == null) pid = people.FirstOrDefault()?.id ?? "";
+        if (Cur == null) pid = Shown.FirstOrDefault()?.id ?? "";
         RenderPeople();
         updated = Updater.JustUpdated();
         // Snapshots do not update, unless a test pretends to be an older version (CONCILIUM_VERSION).
@@ -193,18 +194,46 @@ public partial class MainWindow : Window
     void RenderPeople()
     {
         People.Children.Clear();
-        foreach (var p in people)
+        foreach (var p in Shown)
         {
             var b = new Button { Content = p.name, Style = (Style)FindResource(p.id == pid ? "PillActive" : "Pill") };
             b.Click += (_, _) => { if (!streaming) SelectPerson(p.id); };
+            b.MouseRightButtonUp += (_, e) => { if (!streaming) ShowRemove(b, p); e.Handled = true; };
             People.Children.Add(b);
         }
-        if (people.Count > 0)
+        if (Shown.Count > 0)
         {
             var add = new Button { Content = T.AddPerson, Style = (Style)FindResource("Pill") };
             add.Click += (_, _) => { if (!streaming) RenderAddPerson(); };
             People.Children.Add(add);
         }
+    }
+
+    // Right click on a name: "Remove" with a line saying it comes back. Only hides the person; the folder is not touched.
+    void ShowRemove(Button anchor, Person p)
+    {
+        var item = new StackPanel();
+        item.Children.Add(new TextBlock { Text = T.Remove, FontWeight = FontWeights.SemiBold });
+        item.Children.Add(new TextBlock { Text = T.RemoveHint, Foreground = Brush("Muted"), FontSize = 13, TextWrapping = TextWrapping.Wrap, MaxWidth = 280, Margin = new Thickness(0, 3, 0, 0) });
+        var btn = new Button { Content = item, Style = (Style)FindResource("Ghost"), HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(14, 10, 14, 10) };
+        var pop = new System.Windows.Controls.Primitives.Popup
+        {
+            PlacementTarget = anchor, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom, VerticalOffset = 6,
+            StaysOpen = false, AllowsTransparency = true,
+            Child = new Border { Child = btn, Background = Brush("GlassStrong"), BorderBrush = Brush("Edge"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(4) },
+        };
+        btn.Click += (_, _) => { pop.IsOpen = false; RemovePerson(p); };
+        pop.IsOpen = true;
+    }
+
+    void RemovePerson(Person p)
+    {
+        var i = people.FindIndex(x => x.id == p.id);
+        if (i < 0) return;
+        people[i] = p with { hidden = true };
+        Store.SavePeople(people);
+        if (pid == p.id) SelectPerson(Shown.FirstOrDefault()?.id ?? "");
+        else RenderPeople();
     }
 
     void SelectPerson(string id)
@@ -257,7 +286,7 @@ public partial class MainWindow : Window
         var ok = new Button { Content = T.Add, Style = (Style)FindResource("Primary"), Margin = new Thickness(0, 0, 10, 0), IsDefault = true };
         var cancel = new Button { Content = T.Cancel, Style = (Style)FindResource("Ghost") };
         buttons.Children.Add(ok);
-        if (people.Count > 0) buttons.Children.Add(cancel);
+        if (Shown.Count > 0) buttons.Children.Add(cancel);
         w.Children.Add(buttons);
         cancel.Click += (_, _) => RenderWelcome();
         ok.Click += (_, _) =>
@@ -280,11 +309,27 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(folder);
         }
         if (!Directory.Exists(folder)) throw new Exception(T.FolderMissing);
-        // A new, empty folder gets the memory skeleton from the template; an existing one is left as it is.
-        if (!Directory.EnumerateFileSystemEntries(folder).Any())
-            foreach (var f in Directory.GetFiles(Paths.Template, "*.md"))
-                if (Path.GetFileName(f) != "README.md") File.Copy(f, Path.Combine(folder, Path.GetFileName(f)));
-        var p = new Person(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("x"), name, Path.GetFullPath(folder));
+        var full = Path.GetFullPath(folder).TrimEnd('\\');
+        // One folder, one person: adding a removed person's folder brings them back as they were.
+        var i = people.FindIndex(x => string.Equals(Path.GetFullPath(x.path).TrimEnd('\\'), full, StringComparison.OrdinalIgnoreCase));
+        if (i >= 0)
+        {
+            people[i] = people[i] with { name = name, hidden = false };
+            Store.SavePeople(people);
+            return people[i].id;
+        }
+        // The agent's rules go into any folder that lacks them; files already there are never replaced.
+        // The memory skeleton only into an empty folder: notes without memory get theirs built by the agent from the notes,
+        // and a folder with any "* MEMORY.md" (e.g. "Mom MEMORY.md") already has memory.
+        var empty = !Directory.EnumerateFileSystemEntries(folder).Any();
+        string[] rules = { "AGENTS.md", "CLAUDE.md", "PRINCIPLES.md" };
+        foreach (var f in Directory.GetFiles(Paths.Template, "*.md"))
+        {
+            var n = Path.GetFileName(f);
+            var to = Path.Combine(folder, n);
+            if (n != "README.md" && (empty || rules.Contains(n)) && !File.Exists(to)) File.Copy(f, to);
+        }
+        var p = new Person(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("x"), name, full);
         people.Add(p);
         Store.SavePeople(people);
         // Conversations that existed before the folder was added count as already consolidated.
@@ -584,7 +629,7 @@ public partial class MainWindow : Window
         if (!authed) { RenderLogin(); return; }
         ClearMessages();
         var w = new StackPanel { Margin = new Thickness(0, 50, 0, 0), Tag = "welcome" };
-        if (people.Count == 0)
+        if (Shown.Count == 0)
         {
             w.Children.Add(new TextBlock { Text = T.Hello(""), FontFamily = (FontFamily)FindResource("Serif"), FontSize = 36, Margin = new Thickness(0, 0, 0, 12) });
             w.Children.Add(new TextBlock { Text = T.NoPeople, FontSize = 17, Foreground = Brush("Muted"), Margin = new Thickness(0, 0, 0, 24) });
@@ -634,7 +679,7 @@ public partial class MainWindow : Window
 
     void RemoveWelcome()
     {
-        if (authed && people.Count > 0) Actions.Visibility = Visibility.Visible;
+        if (authed && Shown.Count > 0) Actions.Visibility = Visibility.Visible;
         foreach (var c in Messages.Children.OfType<FrameworkElement>().Where(c => c.Tag is "welcome").ToList()) Messages.Children.Remove(c);
     }
 

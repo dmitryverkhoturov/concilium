@@ -106,7 +106,9 @@ public static class Paths
     }
 }
 
-public record Person(string id, string name, string path);
+// A removed person stays in the list, hidden: adding the same folder again brings back the same person and memory state.
+public record Person(string id, string name, string path,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] bool hidden = false);
 
 // The list of people and per-conversation memory state. Same files as the old app, so nothing is lost on upgrade.
 public static class Store
