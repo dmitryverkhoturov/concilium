@@ -1,4 +1,4 @@
-; Installer for Concilium: per user, no administrator rights, no questions.
+﻿; Installer for Concilium: per user, no administrator rights, no questions.
 ; Build: ISCC.exe /DVersion=0.4.0 /DSource=..\..\dist\release\Concilium Concilium.iss
 ; The people's list and memory state live in %APPDATA%\Concilium and are never touched here.
 
@@ -24,6 +24,8 @@ PrivilegesRequired=lowest
 OutputDir=..\..\dist\release
 OutputBaseFilename=Concilium-{#Version}-setup
 SetupIconFile=..\icon.ico
+; The flower in the page header instead of Inno's box, one file per screen scale.
+WizardSmallImageFile=small-55.bmp,small-69.bmp,small-83.bmp,small-110.bmp,small-138.bmp
 UninstallDisplayIcon={app}\Concilium.exe
 Compression=lzma2
 SolidCompression=yes
@@ -36,6 +38,15 @@ ShowLanguageDialog=no
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
+
+; The only page is "Ready": one line and the Install button.
+[Messages]
+en.WizardReady=Concilium
+en.ReadyLabel1=Concilium will be installed on this computer.
+en.ReadyLabel2b=
+ru.WizardReady=Concilium
+ru.ReadyLabel1=Concilium установится на этот компьютер.
+ru.ReadyLabel2b=
 
 [Files]
 Source: "{#Source}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "Concilium data\*,portable.txt"
