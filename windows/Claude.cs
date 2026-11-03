@@ -389,8 +389,28 @@ public static class Auth
 
     public static int Rejected { get { lock (output) return System.Text.RegularExpressions.Regex.Matches(output.ToString(), "Invalid code", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count; } }
 
+    // Signing in on another device: the page opened there ends on "http://localhost:<port>/callback?code=…" which that
+    // device cannot reach. Pasted here, it is opened here, where this Claude Code is listening: the same as if this
+    // computer's own browser had got there. Its code is bound to that address and is not accepted as a typed code.
+    public static bool IsCallback(string raw) =>
+        System.Text.RegularExpressions.Regex.IsMatch(raw.Trim(), @"^https?://(localhost|127\.0\.0\.1)(:\d+)?/\S*[?&]code=", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    static bool Callback(string raw)
+    {
+        try
+        {
+            if (!Pending) return false;
+            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+            using var r = http.GetAsync(System.Text.RegularExpressions.Regex.Replace(raw.Trim(), @"\s+", "")).GetAwaiter().GetResult();
+            lock (output) output.AppendLine($"[callback {(int)r.StatusCode}]");
+            return true;
+        }
+        catch (Exception e) { Paths.LogError(e); return false; }
+    }
+
     public static bool Code(string raw)
     {
+        if (IsCallback(raw)) return Callback(raw);
         try
         {
             if (!Pending) return false;
