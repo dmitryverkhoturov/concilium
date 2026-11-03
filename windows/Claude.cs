@@ -392,16 +392,66 @@ public static class Auth
     // Signing in on another device: the page opened there ends on "http://localhost:<port>/callback?code=…" which that
     // device cannot reach. Pasted here, it is opened here, where this Claude Code is listening: the same as if this
     // computer's own browser had got there. Its code is bound to that address and is not accepted as a typed code.
-    public static bool IsCallback(string raw) =>
-        System.Text.RegularExpressions.Regex.IsMatch(raw.Trim(), @"^https?://(localhost|127\.0\.0\.1)(:\d+)?/\S*[?&]code=", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    // Whatever was pasted: the address with or without "http://", 127.0.0.1 instead of localhost, in quotes, inside the
+    // copied text of the browser's error page, broken over lines, or only its "code=…&state=…" part. Anything that is
+    // not the code page of platform.claude.com (that one gives a code to type) and carries "code=" is this answer.
+    // It is sent to the port this sign-in listens on now; a state from an earlier attempt is not sent at all,
+    // because Claude Code ends the whole sign-in on a wrong state.
+    public static string? CallbackUrl(string raw, out bool stale)
+    {
+        stale = false;
+        var flat = System.Text.RegularExpressions.Regex.Replace(raw, @"\s+", "");
+        if (IsPageLink(flat) || flat.Contains("platform.claude.com", StringComparison.OrdinalIgnoreCase)) return null;
+        var local = System.Text.RegularExpressions.Regex.IsMatch(flat, @"localhost|127\.0\.0\.1|\[::1\]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!local && !flat.Contains("state=")) return null;
+        // Several readings of the text: with an address broken over lines joined, as pasted, and with all spaces gone.
+        // The one whose state is this sign-in's wins; words after the address must not stick to the state.
+        var joined = System.Text.RegularExpressions.Regex.Replace(raw, @"(?<=[A-Za-z0-9_\-%=&])\s*\r?\n\s*(?=[A-Za-z0-9_\-%=&])", "");
+        string? code = null, state = null;
+        foreach (var t in new[] { joined, raw, flat })
+        {
+            if (Param(t, "code") is not { } c) continue;
+            var st = Param(t, "state");
+            code ??= c; state ??= st;
+            if (State == null || st == null || st == State) { code = c; state = st ?? State; stale = false; break; }
+            stale = true;
+        }
+        if (code == null) return null;
+        if (stale) return "";
+        state ??= State;
+        var port = ListenPort() ?? (System.Text.RegularExpressions.Regex.Match(flat, @"(?:localhost|127\.0\.0\.1|\[::1\]):(\d+)") is { Success: true } p ? int.Parse(p.Groups[1].Value) : (int?)null);
+        if (port == null) return null;
+        return $"http://localhost:{port}/callback?code={Uri.EscapeDataString(code)}" + (state != null ? $"&state={Uri.EscapeDataString(state)}" : "");
+    }
 
-    static bool Callback(string raw)
+    static string? Param(string text, string key) =>
+        System.Text.RegularExpressions.Regex.Match(text, $@"(?:^|[?&#\s""'/])" + key + @"=([A-Za-z0-9_\-.~%]+)") is { Success: true } m ? Uri.UnescapeDataString(m.Groups[1].Value) : null;
+
+    static string? State => Url == null ? null : Param(Url, "state");
+
+    // The port "claude auth login" listens on for the browser's return, from netstat: .NET does not tell whose a port is.
+    static int? ListenPort()
+    {
+        try
+        {
+            if (!Pending) return null;
+            var psi = new ProcessStartInfo("netstat", "-ano -p TCP") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
+            using var n = Process.Start(psi)!;
+            var text = n.StandardOutput.ReadToEnd();
+            n.WaitForExit(5000);
+            var m = System.Text.RegularExpressions.Regex.Match(text, $@"127\.0\.0\.1:(\d+)\s+0\.0\.0\.0:0\s+\S+\s+{login!.Id}\s*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+            return m.Success ? int.Parse(m.Groups[1].Value) : null;
+        }
+        catch { return null; }
+    }
+
+    public static bool Callback(string url)
     {
         try
         {
             if (!Pending) return false;
             using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-            using var r = http.GetAsync(System.Text.RegularExpressions.Regex.Replace(raw.Trim(), @"\s+", "")).GetAwaiter().GetResult();
+            using var r = http.GetAsync(url).GetAwaiter().GetResult();
             lock (output) output.AppendLine($"[callback {(int)r.StatusCode}]");
             return true;
         }
@@ -410,7 +460,6 @@ public static class Auth
 
     public static bool Code(string raw)
     {
-        if (IsCallback(raw)) return Callback(raw);
         try
         {
             if (!Pending) return false;

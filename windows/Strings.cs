@@ -13,7 +13,7 @@ public class Strings
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
         Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, TasksDone, Vpn, Updated, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, RemoveHint, Picture,
-        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, Installing, Downloading, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
+        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, LoginStale, Installing, Downloading, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
     public required Action4[] Actions;
@@ -40,7 +40,7 @@ public class Strings
         LoginTitle = "Подключим помощника",
         LoginText = "",
         LoginBtn = "Войти через Claude", LoginWaiting = "", LoginAgain = "Открыть страницу входа",
-        LoginCode = "Код со страницы", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти", LoginChecking = "Проверяю…", LoginBadCode = "Код не подошёл", LoginPageLink = "Нужен код со страницы", LoginExpired = "Открыл страницу заново",
+        LoginCode = "Код со страницы", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти", LoginChecking = "Проверяю…", LoginBadCode = "Код не подошёл", LoginPageLink = "Нужен код со страницы", LoginExpired = "Открыл страницу заново", LoginStale = "Это ответ от прошлой попытки входа. Нажмите «Открыть страницу входа» и войдите ещё раз",
         Installing = "Устанавливаю…", Downloading = "Скачиваю Claude Code: {0} из {1} МБ", InstallText = "", InstallBtn = "Установить Claude Code", InstallFailed = "Не установилось. Проверьте интернет",
         NameRequired = "Напишите имя.", FolderMissing = "Такой папки нет.",
         Ago = m => m < 1 ? "только что" : m < 60 ? $"{m} мин назад" : m < 1440 ? $"{Math.Round(m / 60.0)} ч назад" : $"{Math.Round(m / 1440.0)} дн назад",
@@ -74,7 +74,7 @@ public class Strings
         LoginTitle = "Let's connect the assistant",
         LoginText = "",
         LoginBtn = "Sign in with Claude", LoginWaiting = "", LoginAgain = "Open the sign-in page",
-        LoginCode = "Code from the page", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed", LoginChecking = "Checking…", LoginBadCode = "Wrong code", LoginPageLink = "Paste the code from the page", LoginExpired = "Opened the page again",
+        LoginCode = "Code from the page", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed", LoginChecking = "Checking…", LoginBadCode = "Wrong code", LoginPageLink = "Paste the code from the page", LoginExpired = "Opened the page again", LoginStale = "This is from an earlier sign-in attempt. Press \"Open the sign-in page\" and sign in again",
         Installing = "Installing…", Downloading = "Downloading Claude Code: {0} of {1} MB", InstallText = "", InstallBtn = "Install Claude Code", InstallFailed = "Could not install. Check the internet",
         NameRequired = "Please enter a name.", FolderMissing = "That folder does not exist.",
         Ago = m => m < 1 ? "just now" : m < 60 ? $"{m} min ago" : m < 1440 ? $"{Math.Round(m / 60.0)} h ago" : $"{Math.Round(m / 1440.0)} d ago",

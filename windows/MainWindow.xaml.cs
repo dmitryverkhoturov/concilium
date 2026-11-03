@@ -544,10 +544,11 @@ public partial class MainWindow : Window
             if (!Auth.Pending) { if (!Auth.Start()) { err.Text = T.Vpn; return; } rejected = 0; err.Text = T.LoginExpired; code.Text = ""; startedAt = DateTime.Now; return; }
             err.Text = "";
             // The address from a sign-in finished on another device is opened off the window's thread; the poll sees the result.
-            if (Auth.IsCallback(text))
+            if (Auth.CallbackUrl(text, out var stale) is { } url)
             {
+                if (stale) { err.Text = T.LoginStale; code.Text = ""; return; }
                 wait.Text = T.LoginChecking;
-                Task.Run(() => Auth.Code(text)).ContinueWith(t => { if (!t.Result && !Auth.LoggedIn()) err.Text = T.LoginFailed; }, TaskScheduler.FromCurrentSynchronizationContext());
+                Task.Run(() => Auth.Callback(url)).ContinueWith(t => { if (!t.Result && !Auth.LoggedIn()) err.Text = T.LoginFailed; }, TaskScheduler.FromCurrentSynchronizationContext());
                 return;
             }
             wait.Text = Auth.Code(text) ? T.LoginChecking : T.LoginFailed;
