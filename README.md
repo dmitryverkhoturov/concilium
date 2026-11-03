@@ -35,7 +35,7 @@ The person in the screenshots is fictional, a simulated patient from [`eval/`](e
 
 ## Download
 
-Windows 10/11: [latest release](https://github.com/dmitryverkhoturov/concilium/releases/latest). Unzip `Concilium-…-win-x64.zip` anywhere and run `Concilium.exe`. On first start it asks you to sign in with a Claude account and installs Claude Code if it is not on the computer yet.
+Windows 10/11: [latest release](https://github.com/dmitryverkhoturov/concilium/releases/latest). Run `Concilium-…-setup.exe`: it installs for the current user, without administrator rights, and adds shortcuts. On first start the app installs Claude Code if it is not on the computer yet, then asks you to sign in with a Claude account. Later versions arrive by themselves. `Concilium-…-portable.zip` runs from any folder without installing.
 
 ## Two ways to use it
 
@@ -63,7 +63,7 @@ cd windows
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ../dist/Concilium
 ```
 
-The published folder holds `Concilium.exe` and the `concilium-markdown` template. Claude Code is not shipped with the app. It uses the Claude Code already on the computer (Anthropic's native installer in `~/.local/bin`, or npm). If there is none, the sign-in button first runs Anthropic's official installer (`irm https://claude.ai/install.ps1 | iex`) without showing a terminal, then signs in. `CONCILIUM_CLAUDE=<path to claude.exe>` overrides the lookup. App data goes to `Concilium data` next to the exe; run from `bin/` it goes to `%APPDATA%\Concilium`. `CONCILIUM_SHOT=<png>` saves a picture of the window and quits (smoke test, README images); it runs beside an open app window. With it: `CONCILIUM_DATA=<folder>` uses another list of people, `CONCILIUM_SHOT_SEND="message || /next-step"` sends messages first (`@last` opens the latest conversation), `CONCILIUM_SHOT_SCROLL=top` shows a conversation from its start, `CONCILIUM_SHOT_NOTE=<note>` opens a note on the right. The app speaks the Windows language (English if it has no strings for it); `CONCILIUM_LANG=en` overrides it.
+The published folder holds `Concilium.exe` and the `concilium-markdown` template. Claude Code is not shipped with the app. It uses the Claude Code already on the computer (Anthropic's native installer in `~/.local/bin`, or npm). If there is none, the app does what Anthropic's official installer (`claude.ai/install.ps1`) does, without a terminal: downloads `claude.exe` from `downloads.claude.ai`, checks it against the release manifest, runs `claude.exe install`. Before any request to Anthropic it checks the country through Cloudflare's trace and does not start Claude where it is not offered. `CONCILIUM_CLAUDE=<path to claude.exe>` is the only place looked at when set. App data goes to `%APPDATA%\Concilium`; the portable build keeps it in `Concilium data` next to the exe. `CONCILIUM_SHOT=<png>` saves a picture of the window and quits (smoke test, README images); it runs beside an open app window. With it: `CONCILIUM_DATA=<folder>` uses another list of people, `CONCILIUM_SHOT_SEND="message || /next-step"` sends messages first (`@last` opens the latest conversation), `CONCILIUM_SHOT_SCROLL=top` shows a conversation from its start, `CONCILIUM_SHOT_NOTE=<note>` opens a note on the right. The app speaks the Windows language (English if it has no strings for it); `CONCILIUM_LANG=en` overrides it.
 
 ## Run the older Electron app from source
 
