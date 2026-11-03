@@ -13,7 +13,7 @@ public class Strings
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
         Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, TasksDone, Vpn, Updated, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, RemoveHint, Picture,
-        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, Installing, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
+        LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, Installing, Downloading, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
     public required Action4[] Actions;
@@ -34,14 +34,14 @@ public class Strings
         Cancel = "Отмена", Add = "Добавить", Hello = n => $"Здравствуйте{(n.Length > 0 ? ", " + n : "")}!",
         HelloSub = "Расскажите своими словами, что беспокоит. Или выберите, с чего начать:",
         NoPeople = "Для кого будем вести заметки о здоровье? Добавьте первого человека.", NoPeopleBtn = "Добавить человека",
-        Thinking = "Думаю…", TasksDone = "Готово направлений: {0} из {1}", Vpn = "Claude сейчас недоступен из вашей сети. Включите VPN и отправьте сообщение ещё раз.", Updated = "Обновлено до {0}", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
+        Thinking = "Думаю…", TasksDone = "Готово направлений: {0} из {1}", Vpn = "Claude сейчас недоступен из вашей сети. Включите VPN и попробуйте ещё раз.", Updated = "Обновлено до {0}", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
         MemBtn = "Запомнить сейчас", Writing = "запоминаю", NothingNew = "Нового для памяти не было.", Noted = "Главное из разговора запомнил.", Recalling = "Вспоминаю прошлый разговор…",
         LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", RemoveHint = "Вернуть можно через «Добавить» ту же папку. Разговоры и память останутся.", Picture = "Снимок",
         LoginTitle = "Подключим помощника",
         LoginText = "",
-        LoginBtn = "Войти через Claude", LoginWaiting = "", LoginAgain = "Открыть страницу ещё раз",
+        LoginBtn = "Войти через Claude", LoginWaiting = "", LoginAgain = "Открыть страницу входа",
         LoginCode = "Код со страницы", LoginCodeBtn = "Готово", LoginFailed = "Не получилось войти", LoginChecking = "Проверяю…", LoginBadCode = "Код не подошёл", LoginPageLink = "Нужен код со страницы", LoginExpired = "Открыл страницу заново",
-        Installing = "Устанавливаю…", InstallText = "", InstallBtn = "Установить Claude Code", InstallFailed = "Не установилось. Проверьте интернет",
+        Installing = "Устанавливаю…", Downloading = "Скачиваю Claude Code: {0} из {1} МБ", InstallText = "", InstallBtn = "Установить Claude Code", InstallFailed = "Не установилось. Проверьте интернет",
         NameRequired = "Напишите имя.", FolderMissing = "Такой папки нет.",
         Ago = m => m < 1 ? "только что" : m < 60 ? $"{m} мин назад" : m < 1440 ? $"{Math.Round(m / 60.0)} ч назад" : $"{Math.Round(m / 1440.0)} дн назад",
         Actions = new Action4[]
@@ -68,14 +68,14 @@ public class Strings
         Cancel = "Cancel", Add = "Add", Hello = n => $"Hello{(n.Length > 0 ? ", " + n : "")}!",
         HelloSub = "Tell me in your own words what bothers you. Or pick where to start:",
         NoPeople = "Whose health notes shall we keep? Add the first person.", NoPeopleBtn = "Add a person",
-        Thinking = "Thinking…", TasksDone = "Directions done: {0} of {1}", Vpn = "Claude is not available from your network right now. Turn on a VPN and send the message again.", Updated = "Updated to {0}", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
+        Thinking = "Thinking…", TasksDone = "Directions done: {0} of {1}", Vpn = "Claude is not available from your network right now. Turn on a VPN and try again.", Updated = "Updated to {0}", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
         MemBtn = "Remember now", Writing = "remembering", NothingNew = "Nothing new to note.", Noted = "Noted what mattered from this talk.", Recalling = "Recalling the last conversation…",
         LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", RemoveHint = "Add the same folder again to bring them back. Conversations and memory stay.", Picture = "Picture",
         LoginTitle = "Let's connect the assistant",
         LoginText = "",
-        LoginBtn = "Sign in with Claude", LoginWaiting = "", LoginAgain = "Open the page again",
+        LoginBtn = "Sign in with Claude", LoginWaiting = "", LoginAgain = "Open the sign-in page",
         LoginCode = "Code from the page", LoginCodeBtn = "Done", LoginFailed = "Sign-in failed", LoginChecking = "Checking…", LoginBadCode = "Wrong code", LoginPageLink = "Paste the code from the page", LoginExpired = "Opened the page again",
-        Installing = "Installing…", InstallText = "", InstallBtn = "Install Claude Code", InstallFailed = "Could not install. Check the internet",
+        Installing = "Installing…", Downloading = "Downloading Claude Code: {0} of {1} MB", InstallText = "", InstallBtn = "Install Claude Code", InstallFailed = "Could not install. Check the internet",
         NameRequired = "Please enter a name.", FolderMissing = "That folder does not exist.",
         Ago = m => m < 1 ? "just now" : m < 60 ? $"{m} min ago" : m < 1440 ? $"{Math.Round(m / 60.0)} h ago" : $"{Math.Round(m / 1440.0)} d ago",
         Actions = new Action4[]

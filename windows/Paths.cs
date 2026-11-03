@@ -34,9 +34,9 @@ public static class Paths
     // Claude Code is not shipped with the app: it is Anthropic's program, installed by Anthropic's own installer
     // (see Installer) into ~/.local/bin. Looked up on every use, because it may get installed while the app runs.
     // From a source checkout, the binary the Agent SDK installed also works.
-    public static string Claude => new[]
+    // CONCILIUM_CLAUDE, when set, is the only place looked at: a test can pretend Claude Code is not installed.
+    public static string Claude => Environment.GetEnvironmentVariable("CONCILIUM_CLAUDE") is { Length: > 0 } forced ? (File.Exists(forced) ? forced : "") : new[]
     {
-        Environment.GetEnvironmentVariable("CONCILIUM_CLAUDE"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "claude.exe"),
         OnPath("claude.exe"),
         // Installed with npm: claude.cmd on PATH runs the binary inside the package.

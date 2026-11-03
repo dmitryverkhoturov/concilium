@@ -201,23 +201,64 @@ public class ClaudeProcess : IDisposable
     }
 }
 
-// Installing Claude Code without a terminal: Anthropic's official Windows installer, run hidden.
-// It puts claude.exe into ~/.local/bin, where Paths.Claude looks first.
+// Installing Claude Code without a terminal: the same steps as Anthropic's install.ps1 (claude.ai/install.ps1),
+// done here instead of in a hidden PowerShell. Its Invoke-WebRequest in Windows PowerShell 5.1 holds the whole
+// ~300 MB in memory and is very slow: ten silent minutes. Here: latest version → manifest → download from
+// Anthropic with progress → SHA-256 from the manifest → "claude.exe install", which puts claude.exe into ~/.local/bin.
 public static class Installer
 {
-    static Process? run;
-    public static bool Pending => run is { HasExited: false };
-    public static bool Failed => run is { HasExited: true } && !Paths.HasClaude;
+    const string Releases = "https://downloads.claude.ai/claude-code-releases";
+    // install.ps1's own folder: always under the user profile, whatever CLAUDE_CONFIG_DIR says.
+    static readonly string Downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "downloads");
+    static Task? run;
+    static long done, total;
+    public static bool Pending => run is { IsCompleted: false };
+    public static bool Failed => run is { IsCompleted: true } && !Paths.HasClaude;
+    public static (long done, long total) Progress() => (Interlocked.Read(ref done), Interlocked.Read(ref total));
 
     public static bool Start()
     {
         if (Pending) return true;
         if (UnsupportedRegion.Blocked().GetAwaiter().GetResult()) return false;
-        var psi = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };
-        foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm https://claude.ai/install.ps1 | iex" }) psi.ArgumentList.Add(a);
-        ClaudeProcess.CleanEnv(psi.Environment);
-        try { run = Process.Start(psi); } catch (Exception e) { Paths.LogError(e); }
+        done = total = 0;
+        run = Task.Run(async () => { try { await Install(); } catch (Exception e) { Paths.LogError(e); } });
         return true;
+    }
+
+    static async Task Install()
+    {
+        using var http = new System.Net.Http.HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        var v = (await http.GetStringAsync($"{Releases}/latest")).Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(v, @"^\d+\.\d+\.\d+")) throw new Exception("unexpected version: " + v[..Math.Min(v.Length, 80)]);
+        var m = JsonNode.Parse(await http.GetStringAsync($"{Releases}/{v}/manifest.json"))?["platforms"]?["win32-x64"];
+        var sum = m?["checksum"]?.GetValue<string>() ?? throw new Exception("no win32-x64 in manifest");
+        Interlocked.Exchange(ref total, m?["size"]?.GetValue<long>() ?? 0);
+        Directory.CreateDirectory(Downloads);
+        var bin = Path.Combine(Downloads, $"claude-{v}-win32-x64.exe");
+        using (var resp = await http.GetAsync($"{Releases}/{v}/win32-x64/claude.exe", System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
+        {
+            resp.EnsureSuccessStatusCode();
+            if (total == 0 && resp.Content.Headers.ContentLength is { } len) Interlocked.Exchange(ref total, len);
+            await using var src = await resp.Content.ReadAsStreamAsync();
+            await using var dst = File.Create(bin);
+            var buf = new byte[1 << 16];
+            for (int n; (n = await src.ReadAsync(buf)) > 0;) { await dst.WriteAsync(buf.AsMemory(0, n)); Interlocked.Add(ref done, n); }
+        }
+        try
+        {
+            string actual;
+            using (var f = File.OpenRead(bin)) actual = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(f));
+            if (!actual.Equals(sum, StringComparison.OrdinalIgnoreCase)) throw new Exception("checksum mismatch");
+            var psi = new ProcessStartInfo(bin) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            psi.ArgumentList.Add("install");
+            ClaudeProcess.CleanEnv(psi.Environment);
+            using var p = Process.Start(psi)!;
+            var log = p.StandardOutput.ReadToEndAsync();
+            var errs = p.StandardError.ReadToEndAsync();
+            await p.WaitForExitAsync();
+            if (p.ExitCode != 0) throw new Exception($"claude install exited {p.ExitCode}: {await log} {await errs}");
+        }
+        finally { try { File.Delete(bin); } catch { } }
     }
 
     // Anthropic's installer puts claude.exe into ~/.local/bin and only advises adding it to PATH.

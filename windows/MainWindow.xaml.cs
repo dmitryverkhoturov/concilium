@@ -556,42 +556,49 @@ public partial class MainWindow : Window
         w.Children.Add(err);
         Messages.Children.Add(w);
 
-        void ShowPending() { btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now; }
+        // "Open the page again" and the code field only once the sign-in page has been opened, not while getting ready or installing.
+        void ShowPending(string text, bool page)
+        {
+            btn.Visibility = Visibility.Collapsed; pending.Visibility = Visibility.Visible; err.Text = ""; startedAt = DateTime.Now;
+            wait.Text = text; fallback.Visibility = page ? Visibility.Visible : Visibility.Collapsed;
+        }
+        void ShowButton(string error) { btn.Visibility = Visibility.Visible; pending.Visibility = Visibility.Collapsed; err.Text = error; }
         // One button: if Claude Code is not on this computer yet, it is installed first, then sign-in starts by itself.
         async void Begin()
         {
-            btn.IsEnabled = false;
-            var blocked = await UnsupportedRegion.Blocked();
-            btn.IsEnabled = true;
-            if (blocked) { err.Text = T.Vpn; return; }
-            ShowPending();
-            if (Paths.HasClaude) { wait.Text = T.LoginWaiting; Auth.Start(); }
-            else { wait.Text = T.Installing; Installer.Start(); }
+            // The region check takes up to a few seconds: say something at once instead of a button that does nothing.
+            ShowPending(T.Starting, false);
+            if (await UnsupportedRegion.Blocked()) { ShowButton(T.Vpn); return; }
+            if (Paths.HasClaude) { ShowPending(T.LoginWaiting, true); Auth.Start(); }
+            else { ShowPending(T.Installing, false); Installer.Start(); }
             authPoll.Start();
         }
         btn.Click += (_, _) => Begin();
         authPoll.Tick -= AuthTick;
         authPoll.Tick += AuthTick;
-        if (Installer.Pending) { ShowPending(); wait.Text = T.Installing; authPoll.Start(); }
-        else if (Auth.Pending) { ShowPending(); authPoll.Start(); }
+        if (Installer.Pending) { ShowPending(T.Installing, false); authPoll.Start(); }
+        else if (Auth.Pending) { ShowPending(T.LoginWaiting, true); authPoll.Start(); }
 
         void AuthTick(object? s, EventArgs e)
         {
-            if (Installer.Pending) return;
+            if (Installer.Pending)
+            {
+                var (done, total) = Installer.Progress();
+                wait.Text = done > 0 && total > 0 && done < total ? string.Format(T.Downloading, done >> 20, total >> 20) : T.Installing;
+                return;
+            }
             if (!Paths.HasClaude)
             {
                 authPoll.Stop();
-                err.Text = T.InstallFailed;
-                btn.Visibility = Visibility.Visible;
-                pending.Visibility = Visibility.Collapsed;
+                ShowButton(T.InstallFailed);
                 return;
             }
             Installer.EnsurePath();
             // Just installed: go on to sign-in.
             if (!Auth.Pending && !Auth.LoggedIn() && !Auth.Failed)
             {
-                if (!Auth.Start()) { authPoll.Stop(); err.Text = T.Vpn; btn.Visibility = Visibility.Visible; pending.Visibility = Visibility.Collapsed; return; }
-                wait.Text = T.LoginWaiting; startedAt = DateTime.Now; return;
+                if (!Auth.Start()) { authPoll.Stop(); ShowButton(T.Vpn); return; }
+                ShowPending(T.LoginWaiting, true); return;
             }
             if (Auth.LoggedIn())
             {
@@ -607,9 +614,7 @@ public partial class MainWindow : Window
             if (Auth.Failed)
             {
                 authPoll.Stop();
-                err.Text = T.LoginFailed;
-                btn.Visibility = Visibility.Visible;
-                pending.Visibility = Visibility.Collapsed;
+                ShowButton(T.LoginFailed);
             }
         }
     }
