@@ -88,6 +88,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Button x:Name="AttachBtn" Style="{StaticResource Ghost}" Width="42" Height="42" Padding="0" Tag="21"
                                         VerticalAlignment="Bottom" Margin="0,0,4,0" Click="Attach_Click">
@@ -100,7 +101,16 @@
                                 <TextBox x:Name="Input" Grid.Column="1" BorderThickness="0" Background="Transparent" AcceptsReturn="True" TextWrapping="Wrap"
                                          VerticalAlignment="Center" MaxHeight="220" VerticalScrollBarVisibility="Auto" FontSize="15.5" Padding="0,6"
                                          CaretBrush="{StaticResource Accent}" PreviewKeyDown="Input_KeyDown" TextChanged="Input_TextChanged"/>
-                                <Button x:Name="SendBtn" Grid.Column="2" Style="{StaticResource Primary}" Width="42" Height="42" Padding="0" Tag="21"
+                                <Button x:Name="MicBtn" Grid.Column="2" Style="{StaticResource Ghost}" Width="42" Height="42" Padding="0" Tag="21"
+                                        VerticalAlignment="Bottom" Margin="4,0,0,0" Click="Mic_Click">
+                                    <Grid>
+                                        <Path x:Name="MicIcon" Data="M12,3 A3,3 0 0 1 15,6 V11 A3,3 0 0 1 9,11 V6 A3,3 0 0 1 12,3 Z M5.5,10.5 A6.5,6.5 0 0 0 18.5,10.5 M12,17 V21"
+                                              Stroke="{StaticResource Accent}" StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              Width="22" Height="22" Stretch="Uniform"/>
+                                        <Ellipse x:Name="RecDot" Width="12" Height="12" Fill="{StaticResource Warn}" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="SendBtn" Grid.Column="3" Style="{StaticResource Primary}" Width="42" Height="42" Padding="0" Tag="21"
                                         VerticalAlignment="Bottom" Margin="8,0,0,0" Click="Send_Click">
                                     <Grid>
                                         <Path x:Name="SendIcon" Data="M12,19 V5 M6,11 L12,5 L18,11" Stroke="{StaticResource Ink}" StrokeThickness="2.2"

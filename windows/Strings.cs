@@ -12,7 +12,7 @@ public class Strings
     public static Strings T => Lang == "ru" ? Ru : En;
 
     public required string Map, Note, NewChat, Chats, Placeholder, AddPerson, AddTitle, Name, Folder, FolderHint, PickFolder,
-        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, TasksDone, Vpn, Updated, UpdateLoading, UpdateReady, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, OpenFile, Attach, Remove, RemoveHint, Picture,
+        Cancel, Add, HelloSub, NoPeople, NoPeopleBtn, Thinking, TasksDone, Vpn, Updated, UpdateLoading, UpdateReady, Stopped, Failed, NeedsLogin, MemBtn, Writing, Recalling, NothingNew, Noted, LongTalk, Starting, ByVoice, VoiceLost, VoiceNothing, OpenFile, Attach, Remove, RemoveHint, Picture,
         LoginTitle, LoginText, LoginBtn, LoginWaiting, LoginAgain, LoginCode, LoginCodeBtn, LoginFailed, LoginChecking, LoginBadCode, LoginPageLink, LoginExpired, LoginStale, Installing, Downloading, InstallFailed, InstallText, InstallBtn, NameRequired, FolderMissing;
     public required Func<string, string> Hello;
     public required Func<int, string> Ago;
@@ -36,7 +36,7 @@ public class Strings
         NoPeople = "Для кого будем вести заметки о здоровье? Добавьте первого человека.", NoPeopleBtn = "Добавить человека",
         Thinking = "Думаю…", TasksDone = "Готово направлений: {0} из {1}", Vpn = "Claude сейчас недоступен из вашей сети. Включите VPN и попробуйте ещё раз.", Updated = "Обновлено до {0}", UpdateLoading = "Загружаю обновление", UpdateReady = "Обновление установится при закрытии", Stopped = "Остановлено.", Failed = "Не получилось: ", NeedsLogin = "Нужно войти в Claude.",
         MemBtn = "Запомнить сейчас", Writing = "запоминаю", NothingNew = "Нового для памяти не было.", Noted = "Главное из разговора запомнил.", Recalling = "Вспоминаю прошлый разговор…",
-        LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "  Голосом: Win+H", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", RemoveHint = "Вернуть можно через «Добавить» ту же папку. Разговоры и память останутся.", Picture = "Снимок",
+        LongTalk = "Разговор стал длинным — дальше я начну путаться. Лучше продолжить в новом: всё важное отсюда я запомню.", Starting = "Готовлюсь…", ByVoice = "Сказать голосом", VoiceLost = "Голос не дошёл до распознавания. Попробуйте ещё раз.", VoiceNothing = "Не расслышал. Попробуйте ещё раз.", OpenFile = "Открыть файл", Attach = "Добавить документ или фото", Remove = "Убрать", RemoveHint = "Вернуть можно через «Добавить» ту же папку. Разговоры и память останутся.", Picture = "Снимок",
         LoginTitle = "Подключим помощника",
         LoginText = "",
         LoginBtn = "Войти через Claude", LoginWaiting = "", LoginAgain = "Открыть страницу входа",
@@ -70,7 +70,7 @@ public class Strings
         NoPeople = "Whose health notes shall we keep? Add the first person.", NoPeopleBtn = "Add a person",
         Thinking = "Thinking…", TasksDone = "Directions done: {0} of {1}", Vpn = "Claude is not available from your network right now. Turn on a VPN and try again.", Updated = "Updated to {0}", UpdateLoading = "Downloading an update", UpdateReady = "The update installs when you close the window", Stopped = "Stopped.", Failed = "Failed: ", NeedsLogin = "Claude sign-in is needed.",
         MemBtn = "Remember now", Writing = "remembering", NothingNew = "Nothing new to note.", Noted = "Noted what mattered from this talk.", Recalling = "Recalling the last conversation…",
-        LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "  By voice: Win+H", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", RemoveHint = "Add the same folder again to bring them back. Conversations and memory stay.", Picture = "Picture",
+        LongTalk = "This conversation has grown long — from here on I will start losing track. Better to go on in a new one: I will remember everything important from this one.", Starting = "Getting ready…", ByVoice = "Speak", VoiceLost = "The recording did not reach speech recognition. Try again.", VoiceNothing = "Did not catch that. Try again.", OpenFile = "Open file", Attach = "Add a document or photo", Remove = "Remove", RemoveHint = "Add the same folder again to bring them back. Conversations and memory stay.", Picture = "Picture",
         LoginTitle = "Let's connect the assistant",
         LoginText = "",
         LoginBtn = "Sign in with Claude", LoginWaiting = "", LoginAgain = "Open the sign-in page",

@@ -19,6 +19,7 @@ public partial class App : Application
             Shutdown(Dream.Run(person, ids.Split(',', StringSplitOptions.RemoveEmptyEntries)));
             return;
         }
+        if (e.Args is ["--voice-check"]) { Shutdown(Voice.Check()); return; }
         // Screenshot mode draws off-screen and must not wake the window the person has open.
         var first = Environment.GetEnvironmentVariable("CONCILIUM_SHOT") is { Length: > 0 };
         // One window per data folder, so a second copy with its own people (a demo) can run beside it.

@@ -131,6 +131,7 @@ public partial class MainWindow : Window
         App.Mark("prepared");
         SetPanel(panelOpen);
         ApplyI18n();
+        WireVoice();
         authed = Paths.HasClaude && Auth.LoggedIn();
         people = Store.People();
         try { Store.Baseline(people); } catch (Exception e) { Paths.LogError(e); }
@@ -175,8 +176,9 @@ public partial class MainWindow : Window
         TabNote.Content = T.Note;
         NewChatBtn.Content = IconText("M12,5 V19 M5,12 H19", T.NewChat, Brush("Ink"));
         ChatsTitle.Text = T.Chats.ToUpperInvariant();
-        Placeholder.Text = T.Placeholder + T.ByVoice;
+        Placeholder.Text = T.Placeholder;
         AttachBtn.ToolTip = T.Attach;
+        MicBtn.ToolTip = T.ByVoice;
         RenderActions();
         RenderLegend();
     }
@@ -810,6 +812,7 @@ public partial class MainWindow : Window
     void Prewarm(Person p, string? s)
     {
         if (!authed) return;
+        if (!Shot) Voice.One.Warm();
         if (liveTask != null && liveKey == (p.id, s) && !liveTask.IsFaulted && (!liveTask.IsCompleted || liveTask.Result.Alive)) return;
         DropLive();
         liveKey = (p.id, s);
@@ -1041,6 +1044,39 @@ public partial class MainWindow : Window
         }
     }
 
+    // ---------- voice ----------
+
+    void WireVoice()
+    {
+        Voice.One.Changed += _ => Dispatcher.BeginInvoke(ShowMic);
+        Voice.One.Text += t => Dispatcher.BeginInvoke(() =>
+        {
+            var at = Input.CaretIndex;
+            var before = Input.Text[..at];
+            var add = (before.Length > 0 && !char.IsWhiteSpace(before[^1]) ? " " : "") + t;
+            Input.Text = before + add + Input.Text[at..];
+            Input.CaretIndex = at + add.Length;
+            Input.Focus();
+        });
+        Voice.One.Failed += why => Dispatcher.BeginInvoke(() => { if (why.Length > 0) { AddError(why); ScrollEnd(true); } ShowMic(); });
+    }
+
+    void Mic_Click(object s, RoutedEventArgs e)
+    {
+        if (!authed) return;
+        Voice.One.Toggle();
+        ShowMic();
+    }
+
+    void ShowMic()
+    {
+        var v = Voice.One;
+        RecDot.Visibility = v.Now == Voice.State.Recording ? Visibility.Visible : Visibility.Collapsed;
+        MicIcon.Visibility = v.Now == Voice.State.Recording ? Visibility.Collapsed : Visibility.Visible;
+        // Getting ready or turning speech into text: the button waits.
+        MicBtn.Opacity = v.Waiting || v.Now == Voice.State.Processing ? 0.45 : 1;
+    }
+
     // ---------- documents ----------
 
     const string IDoc = "M7,3 H14 L19,8 V21 H7 Z M14,3 V8 H19";
@@ -1218,6 +1254,7 @@ public partial class MainWindow : Window
                 if (memory.GetValueOrDefault(p.id).status != "running" && Store.Running(p.id) == null && Unsaved(p, writing) is { Count: > 0 } ids)
                     Dream.Start(p, ids);
         if (liveTask is { IsCompletedSuccessfully: true } t) t.Result.Dispose(); else DropLive();
+        Voice.One.Close();
         if (!Shot || Environment.GetEnvironmentVariable("CONCILIUM_VERSION") != null) Updater.ApplyOnExit();
         base.OnClosing(e);
     }
