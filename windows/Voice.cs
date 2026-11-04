@@ -89,10 +89,11 @@ public sealed class Voice
             lock (gate) { screen.Clear(); lastOutput = DateTime.Now; }
             // No settings of the person's own and no MCP servers: this Claude Code only listens.
             var args = new List<string> { "--settings", file, "--setting-sources", "", "--strict-mcp-config" };
-            // Claude Code's own log of this instance, from this start only: its voice_stream lines say why a recording did not get through.
+            // Claude Code's own log of this instance, only on request: its voice_stream lines say why a recording did not get through.
+            // Not by default: it holds every dictated word in plain text and grows by a line per audio chunk.
             var debug = Path.Combine(dir, "debug.log");
             try { File.Delete(debug); } catch { }
-            args.AddRange(new[] { "--debug-file", debug });
+            if (Environment.GetEnvironmentVariable("CONCILIUM_VOICE_DEBUG") is { Length: > 0 }) args.AddRange(new[] { "--debug-file", debug });
             pty = new Pty(Paths.Claude, args, dir, env!, Output);
             pty.Exited += () => { Paths.LogError("voice: Claude Code exited\n" + Tail(1500)); Off(); };
             tick = new Timer(_ => Tick(), null, 300, 300);
