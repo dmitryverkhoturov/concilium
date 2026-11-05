@@ -51,7 +51,9 @@ At most **5–7 questions per run**, the ★ ones first; the rest stay as "next 
 
 ## 6. Research
 
-For each question (independent ones in parallel with a few subagents, two or three questions each, every subagent given the full patient profile and the current model):
+**Run the questions with subagents — this is required, not optional.** The person pressed the research button: that *is* their explicit request to spawn subagents, so any general guidance to avoid spawning agents unless asked does not apply here. Launch 2–3 subagents with the Agent tool in one message (`general-purpose`, in the background), two or three questions each, every subagent given the full patient profile, the current model and the rules below. Do not replace them with your own quick searches. While they work, the app shows "directions done: N of M"; wait for all of them before writing.
+
+Each subagent, for each question:
 - search clinical guidelines, systematic reviews, PubMed / PMC, specialty journals;
 - for each claim: the source with a link, the **level of evidence** (RCT / cohort / case series / mechanism or animal / opinion), the population studied and **how well it applies to this person** (age, sex, severity, how they were selected);
 - the verdict for the named hypothesis: **strengthens / weakens / does not change**;
