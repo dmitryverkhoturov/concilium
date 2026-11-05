@@ -43,8 +43,10 @@ public class ClaudeProcess : IDisposable
         if (interactive) a.Add("--include-partial-messages");
         // The agent does whatever the work needs in the person's folder: reads, edits, the terminal (rename, move, convert files).
         // Edits outside the folder would need a permission prompt, and in this mode that means "no".
-        // Only the folder's own settings (and its CLAUDE.md): global allow rules of a Claude Code user would override all this.
-        a.AddRange(new[] { "--setting-sources=project", "--permission-mode", "acceptEdits",
+        // User settings too: Anthropic's skills (deep-research, which the research skill runs) live under ~/.claude/skills.
+        // Remote Control from a Claude Code user's own settings must not expose these health conversations.
+        a.AddRange(new[] { "--setting-sources=user,project", "--settings", """{"remoteControlAtStartup":false}""",
+            "--permission-mode", "acceptEdits",
             "--allowedTools", string.Join(",", ReadTools),
             "--plugin-dir", Paths.Plugin,
             "--append-system-prompt-file", Paths.PrinciplesFile });
