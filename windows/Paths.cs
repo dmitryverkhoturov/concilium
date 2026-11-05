@@ -85,28 +85,7 @@ public static class Paths
         File.WriteAllText(Path.Combine(Plugin, ".claude-plugin", "plugin.json"),
             """{"name":"concilium","description":"Concilium health skills"}""");
         CopyDir(Path.Combine(Template, ".claude", "skills"), Path.Combine(Plugin, "skills"));
-        CopyDeepResearch();
         File.WriteAllText(PrinciplesFile, File.ReadAllText(Path.Combine(Template, "PRINCIPLES.md")) + InApp, new UTF8Encoding(false));
-    }
-
-    // The account's deep-research skill (synced from claude.ai into ~/.claude/skills/synced/<org_account>/) is not loaded
-    // with --setting-sources=project; the research skill runs it, so carry it into the plugin when the account has it.
-    static void CopyDeepResearch()
-    {
-        try
-        {
-            var config = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-            if (string.IsNullOrEmpty(config)) config = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
-            var synced = Path.Combine(config, "skills", "synced");
-            if (!Directory.Exists(synced)) return;
-            var found = Directory.GetDirectories(synced)
-                .Select(d => Path.Combine(d, "deep-research"))
-                .Where(d => File.Exists(Path.Combine(d, "SKILL.md")))
-                .OrderByDescending(d => File.GetLastWriteTimeUtc(Path.Combine(d, "SKILL.md")))
-                .FirstOrDefault();
-            if (found != null) CopyDir(found, Path.Combine(Plugin, "skills", "deep-research"));
-        }
-        catch (Exception e) { LogError(e); }
     }
 
     public static void CopyDir(string from, string to)

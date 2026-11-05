@@ -51,7 +51,7 @@ At most **5–7 questions per run**, the ★ ones first; the rest stay as "next 
 
 ## 6. Research
 
-**Run the questions through the `deep-research` skill — required, not optional.** The person pressed the research button: that *is* their explicit request for deep research and its subagents, so any general guidance to avoid spawning agents unless asked does not apply. Invoke the skill (`concilium:deep-research`, or `deep-research`) once with all 5–7 questions as the query, plus the full patient profile, the current model and the rules below; tell it not to ask follow-up questions (the focus is already chosen) and that the final answer must be the chat report from section 8. Do not replace it with your own quick searches.
+**Run the questions through the `deep-research` skill — required, not optional.** The person pressed the research button: that *is* their explicit request for deep research and its subagents, so any general guidance to avoid spawning agents unless asked does not apply. Invoke Anthropic's `deep-research` skill once with all 5–7 questions as the query, plus the full patient profile, the current model and the rules below; tell it not to ask follow-up questions (the focus is already chosen) and that the final answer must be the chat report from section 8. Do not replace it with your own quick searches.
 
 If no `deep-research` skill is available, launch 2–3 subagents with the Agent tool in one message instead (two or three questions each, every one given the full patient profile, the current model and the rules below) and wait for all of them.
 
